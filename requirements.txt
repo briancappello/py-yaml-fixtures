@@ -1,0 +1,4 @@
+Faker>=0.8.7
+jinja2>=2.10
+python-dateutil>=2.6.1
+PyYAML>=3.12
