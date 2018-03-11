@@ -8,7 +8,30 @@ A library for loading (database) fixtures written in Jinja-templated YAML files.
 
 ## Usage
 
-This a generic library, so you can use it however you want, but the intended use case is to add a CLI command to your project for seeding your database. It could also be useful for creating test fixtures, if you're looking for a more simple solution than [factory_boy](https://factoryboy.readthedocs.io/en/latest/). It assumes your fixtures are in a folder, containing file names that match the models you want to create:
+This a generic library, so you can use it however you want, but the intended use case is to add a CLI command to your project for seeding your database. It could also be useful for creating test fixtures, if you're looking for a more simple solution than [factory_boy](https://factoryboy.readthedocs.io/en/latest/). 
+
+### With Flask and Flask-SQLAlchemy
+
+```python
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from py_yaml_fixtures.flask import PyYAMLFixtures
+
+app = Flask(__name__)
+
+db = SQLAlchemy(app)
+
+# optional configuration settings (these are all the defaults):
+app.config['PY_YAML_FIXTURES_MODELS_MODULE'] = 'app.models'
+app.config['PY_YAML_FIXTURES_DIR'] = 'db/fixtures'
+app.config['PY_YAML_FIXTURES_COMMAND_NAME'] = 'import_fixtures'
+
+fixtures = PyYAMLFixtures(app)
+```
+
+And then to use it, call `flask import_fixtures` at the command line.
+
+It assumes your fixtures are in a folder, containing file names that match the models you want to create:
 
 ```
 $ ls db/fixtures
@@ -43,16 +66,16 @@ child{{ i }}:
 # NOTE: it must be unique across *all* of your model fixture files
 three-stooges:
   name: Three Stooges
-  children: Child(moe, larry, curly)  # yaml interprets this as a string
+  children: ['Child(moe, larry, curly)']
   # other supported syntaxes, all resulting in the same list:  (generally, it's 
   # safest to quote strings, so the PyYAML parser doesn't get confused)
-  # children: ['Child(moe, larry, curly)']
+  # children: 'Child(moe, larry, curly)'
   # children: ['Child(moe, larry)', 'Child(curly)']
   # children: ['Child(moe)', 'Child(larry)', 'Child(curly)']
   # children:
-  #   - Child(moe)
-  #   - Child(larry)
-  #   - Child(curly)
+  #   - 'Child(moe)'
+  #   - 'Child(larry)'
+  #   - 'Child(curly)'
 
 {% for i in range(0, 10) %}
 parent{{ i }}:
@@ -66,39 +89,3 @@ parent{{ i }}:
 ```
 
 (Note for the astute readers, the `FixturesLoader` class will remove any duplicates in child relationships, so it's safe to use random in this way.)
-
-Here's an example command for using it with Flask, SQLAlchemy, and click:
-
-```python
-import click
-import importlib
-import inspect
-
-from flask.cli import with_appcontext
-from flask_sqlalchemy import Model
-from py_yaml_fixtures import FixturesLoader
-from py_yaml_fixtures.factories import SQLAlchemyModelFactory
-
-from app.extensions import db
-
-@click.group()
-def fixtures():
-    """Import database fixtures"""
-
-@fixtures.command('import')
-@click.argument('folder', type=click.Path(exists=True), default='db/fixtures')
-@with_appcontext
-def import_fixtures(folder):
-    model_classes = dict(inspect.getmembers(
-        importlib.import_module('app.models'),
-        lambda obj: inspect.isclass(obj) and issubclass(obj, Model)))
-    # or if you prefer less magic, it's a dict of class names to model classes:
-    # model_classes = {'Parent': app.models.Parent, 'Child': app.models.Child}
-    factory = SQLAlchemyModelFactory(db.session, model_classes)
-    loader = FixturesLoader(factory, fixtures_dir=folder)
-    created_instances = loader.create_all()
-    for identifier_key, model in created_instances.items():
-        click.echo('Created {identifier_key}: {model!r}'.format(
-            identifier_key=identifier_key, model=model))
-    click.echo('Finished importing fixtures')
-```
