@@ -1,0 +1,7 @@
+* document usage within pytest (code in flask_react_spa)
+* test it with pytest
+* clean up readme features
+* document extending it
+
+in the future:
+* maybe support dumping from database
