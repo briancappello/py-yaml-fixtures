@@ -22,9 +22,9 @@ def import_fixtures():
         raise e
 
     fixtures_dir = app.config.get('PY_YAML_FIXTURES_DIR')
-    if not os.path.exists(fixtures_dir):
+    if not fixtures_dir or not os.path.exists(fixtures_dir):
         msg = ('Could not find the %r directory, please make sure '
-               ' PY_YAML_FIXTURES_DIR is set correctly' % fixtures_dir)
+               'PY_YAML_FIXTURES_DIR is set correctly' % fixtures_dir)
         raise NotADirectoryError(msg)
 
     model_classes = dict(inspect.getmembers(
