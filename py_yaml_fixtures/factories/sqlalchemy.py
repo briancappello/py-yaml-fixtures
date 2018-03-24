@@ -1,3 +1,4 @@
+import datetime as dt
 import sqlalchemy as sa
 
 from sqlalchemy import orm as sa_orm
@@ -54,9 +55,9 @@ class SQLAlchemyModelFactory(FactoryInterface):
                 rv[col_name] = self.loader.convert_identifiers(value)
             elif not hasattr(col, 'type'):
                 continue
-            elif isinstance(col.type, sa.Date):
+            elif col.type.python_type == dt.date:
                 rv[col_name] = self.date_factory(value)
-            elif isinstance(col.type, sa.DateTime):
+            elif col.type.python_type == dt.datetime:
                 rv[col_name] = self.datetime_factory(value)
         return rv
 
