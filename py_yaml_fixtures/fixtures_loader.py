@@ -73,7 +73,8 @@ class FixturesLoader:
         if not identifier.class_name:
             raise Exception('Identifier must have a class name!')
         self._maybe_load_data([identifier])
-        data = self.model_fixtures[identifier.key]
+        data = self.factory.maybe_convert_values(
+            identifier, self.model_fixtures[identifier.key])
         return self.factory.create(identifier, data)
 
     def convert_identifiers(self, identifiers: Union[str, List[str]],
