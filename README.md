@@ -84,9 +84,9 @@ parent3:
 
 And to actually import the fixtures, call `flask import_fixtures` at the command line.
 
-### Jinja Templating
+### Faker and Jinja Templating
 
-All of the YAML fixtures files are rendered by Jinja before getting loaded. This means you have full access to the Jinja environment, and use things like `faker`, `range` and `random`:
+All of the YAML fixtures files are rendered by Jinja before getting loaded. This means you have full access to the Jinja environment, and can use things like `faker`, `range` and `random`:
 
 ```yaml
 # db/fixtures/Child.yaml
@@ -101,9 +101,9 @@ child{{ i }}:
 # db/fixtures/Parent.yaml
 
 {% for i in range(0, 10) %}
+{%- set num_children = range(0, 4)|random %}
 parent{{ i }}:
   name: {{ faker.name() }}
-  {%- set num_children = range(0, 4)|random %}
   children: {% if num_children == 0 %}[]{%- endif %}
     {%- for num in range(0, num_children) %}
     - 'Child(child{{ range(0, 20)|random }})'
@@ -112,3 +112,15 @@ parent{{ i }}:
 ```
 
 (Note for the astute readers, any duplicates in child relationships will automatically be removed, so it's safe to use random in this way.)
+
+## Contributing
+
+Contributions are welcome!
+
+### Adding support for other ORMs
+
+You must implement a concrete factory by extending `py_yaml_fixtures.FactoryInterface`. There are two abstract methods that must be implemented: `create` and `maybe_convert_values` (see the SQLAlchemyModelFactory implementation as a reference).
+
+## License
+
+MIT
