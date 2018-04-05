@@ -10,8 +10,8 @@ with open(os.path.join(ROOT_DIR, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='Py YAML Fixtures',
-    version='0.1.0',
-    description='Load (database) fixtures written in Jinja-templated YAML',
+    version='0.0.1',
+    description='Load database fixtures from in Jinja-templated YAML files',
     long_description=long_description,
     url='https://github.com/briancappello/py-yaml-fixtures',
     author='Brian Cappello',
