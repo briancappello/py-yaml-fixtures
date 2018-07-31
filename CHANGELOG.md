@@ -1,6 +1,6 @@
 # CHANGELOG
 
-# 0.1.2 (unreleased)
+# 0.1.2 (2018/07/31)
 
 * fix `datetime_factory` and `date_factory` utility functions when passed None
 
