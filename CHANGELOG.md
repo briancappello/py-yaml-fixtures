@@ -1,5 +1,9 @@
 # CHANGELOG
 
+# 0.1.2 (unreleased)
+
+* fix `datetime_factory` and `date_factory` utility functions when passed None
+
 ## 0.1.1 (2018/04/06)
 
 * fix release (misconfigured `include_packages` in `setup.py`)
