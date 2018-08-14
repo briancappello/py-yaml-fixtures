@@ -1,6 +1,6 @@
 # CHANGELOG
 
-# 0.1.3 (unreleased)
+# 0.1.3 (2018/08/14)
 
 * Support multi-line identifier strings
 * Support empty identifier strings (only a class name without any key)
