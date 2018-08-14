@@ -32,7 +32,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
         self.datetime_factory = datetime_factory or utils.datetime_factory
         self.date_factory = date_factory or utils.date_factory
 
-    def create(self, identifier: Identifier, data: Dict[str, Any]):
+    def create_or_update(self, identifier: Identifier, data: Dict[str, Any]):
         model_class = self.models[identifier.class_name]
         instance = self._get_existing(identifier, data)
         if not instance:

@@ -65,7 +65,7 @@ class FixturesLoader:
             identifier = _convert_str(identifier_string)[0]
 
         data = self.model_fixtures[identifier.key]
-        model = self.factory.create(identifier, data)
+        model = self.factory.create_or_update(identifier, data)
         self.factory.commit()
         return model
 
@@ -75,7 +75,7 @@ class FixturesLoader:
         self._maybe_load_data([identifier])
         data = self.factory.maybe_convert_values(
             identifier, self.model_fixtures[identifier.key])
-        return self.factory.create(identifier, data)
+        return self.factory.create_or_update(identifier, data)
 
     def convert_identifiers(self, identifiers: Union[str, List[str]],
                             ) -> Union[object, List[object]]:
