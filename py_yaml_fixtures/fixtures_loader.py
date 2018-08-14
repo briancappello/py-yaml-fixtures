@@ -160,10 +160,11 @@ def _group_by_class_name(identifiers: List[str]) -> DefaultDict[str, List[str]]:
 def _flatten_csv_list(identifier_keys: List[str]) -> List[str]:
     return [key.strip()
             for keys in identifier_keys
-            for key in keys.split(',')]
+            for key in keys.strip(',').split(',')]
 
 
 def _convert_str(value: str) -> List[Identifier]:
+    value = ''.join(value.splitlines())
     rv = []
     prev = None
     while True:
