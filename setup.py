@@ -30,6 +30,14 @@ setup(
         'python-dateutil>=2.6.1',
         'PyYAML>=3.12',
     ],
+    extras_require={
+        'docs': [
+            'm2r',
+            'sphinx',
+            'sphinx-autobuild',
+            'sphinx-rtd-theme',
+        ],
+    },
     python_requires='>=3.5',
     include_package_data=True,
     zip_safe=False,

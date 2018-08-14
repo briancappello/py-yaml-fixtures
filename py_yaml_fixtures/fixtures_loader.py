@@ -15,33 +15,62 @@ identifier_re = re.compile('(?P<class_name>\w+)\((?P<identifiers>[\w,\s]+)\)')
 
 
 class FixturesLoader:
+    """
+    The factory "driver" class. Does most of the hard work of loading fixtures,
+    leaving the responsibility of model instantiation up to the factory class
+    passed in.
+    """
+
+    # The Jinja Environment
     env = None
+
+    # A set of the class names whose fixture files have already been loaded
     loaded_class_names = set()
+
+    # A dictionary of identifier keys to their class names
     class_name_lookup = {}
-    model_fixtures = {}  # raw data from yaml files
+
+    # A dictionary of identifier keys to their raw data from the yaml files
+    model_fixtures = {}
 
     def __init__(self, factory: FactoryInterface,
                  fixtures_dir: str,
                  env: Optional[Environment] = None,):
         """
         :param factory: An instance of the concrete factory to use for creating
-            models
+                        models
         :param fixtures_dir: Path to folder to load template fixtures from
         :param env: An optional jinja environment (the default one will include
-            faker as a template global, but if you want to customize its
-            tags/filters/etc, then you need to create an env yourself - the
-            correct loader will be set automatically for you)
+                    faker as a template global, but if you want to customize its
+                    tags/filters/etc, then you need to create an env yourself - the
+                    correct loader will be set automatically for you)
         """
         factory.loader = self
         self.factory = factory
         self.env = env
         self.fixtures_dir = fixtures_dir
 
-    def get_models(self, identifiers):
+    def get_models(self, identifiers: Union[str, List[str]]):
+        """
+        Returns a dictionary of all models in the fixtures.
+
+        :param identifiers: A single identifier string, or a list of identifier
+                            strings
+        :return: An object where the attributes are the identifier keys, and the
+                 values are model instances
+        """
         return AttrDict(self.create_all(identifiers))
 
-    def create_all(self, identifier_strings: Optional[str] = None,
+    def create_all(self,
+                   identifiers: Optional[Union[str, List[str]]] = None,
                    ) -> Dict[str, object]:
+        """
+        Create all models found in fixtures (or, if passed the ``identifiers``
+        parameter, it will only create those listed)
+
+        :param identifiers: An identifier string, or a list of identifier strings
+        :return: A dictionary of identifier key to model instances
+        """
         if identifiers:
             identifiers = self._flatten_identifiers(identifiers)
         else:
@@ -57,6 +86,15 @@ class FixturesLoader:
 
     def create(self, class_name_or_identifier_string: str,
                identifier_key: Optional[str] = None) -> object:
+        """
+        Create a single model.
+
+        :param class_name_or_identifier_string: Either an identifier string,
+                                                or a class name
+        :param identifier_key: If the first argument was a class name, then
+                               this is required. Otherwise, it's ignored.
+        :return: A model instance
+        """
         if identifier_key:
             class_name = class_name_or_identifier_string
             identifier = Identifier(class_name, identifier_key)
@@ -79,6 +117,12 @@ class FixturesLoader:
 
     def convert_identifiers(self, identifiers: Union[str, List[str]],
                             ) -> Union[object, List[object]]:
+        """
+        Converts identifier strings into the appropriate model instances
+
+        :param identifiers: An identifier string, or a list of identifier strings
+        :return: The converted model instance(s)
+        """
         if isinstance(identifiers, list):
             return [self._create(identifier)
                     for identifier in self._flatten_identifiers(identifiers)]
