@@ -3,6 +3,7 @@
 # 0.1.3 (unreleased)
 
 * Support multi-line identifier strings
+* Support empty identifier strings (only a class name without any key)
 
 # 0.1.2 (2018/07/31)
 

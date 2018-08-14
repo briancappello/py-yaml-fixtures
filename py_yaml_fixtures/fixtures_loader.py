@@ -42,8 +42,8 @@ class FixturesLoader:
 
     def create_all(self, identifier_strings: Optional[str] = None,
                    ) -> Dict[str, object]:
-        if identifier_strings:
-            identifiers = flatten_identifiers(identifier_strings)
+        if identifiers:
+            identifiers = self._flatten_identifiers(identifiers)
         else:
             self._load_data()
             identifiers = [Identifier(class_name, identifier)
@@ -81,12 +81,12 @@ class FixturesLoader:
                             ) -> Union[object, List[object]]:
         if isinstance(identifiers, list):
             return [self._create(identifier)
-                    for identifier in flatten_identifiers(identifiers)]
+                    for identifier in self._flatten_identifiers(identifiers)]
         return self.convert_identifier(identifiers)
 
     def convert_identifier(self, identifier: str) -> Union[object, List[object]]:
         result = [self._create(identifier)
-                  for identifier in flatten_identifiers(identifier)]
+                  for identifier in self._flatten_identifiers(identifier)]
         return result[0] if len(result) == 1 else result
 
     def _maybe_load_data(self, identifiers: List[Identifier]):
@@ -128,19 +128,24 @@ class FixturesLoader:
             faker.seed(1234)
             self.env.globals['faker'] = faker
 
+    def _flatten_identifiers(self,
+                             identifiers: Union[str, List[str]],
+                             ) -> List[Identifier]:
+        if isinstance(identifiers, str):
+            identifiers = _convert_str(identifiers)
+        if isinstance(identifiers, (list, tuple)):
+            identifiers = _group_by_class_name(identifiers)
 
-def flatten_identifiers(identifiers: Union[str, List[str]]) -> List[Identifier]:
-    if isinstance(identifiers, str):
-        identifiers = _convert_str(identifiers)
-    if isinstance(identifiers, (list, tuple)):
-        identifiers = _group_by_class_name(identifiers)
-
-    rv = {}
-    for class_name, values in identifiers.items():
-        for key in _flatten_csv_list(values):
-            identifier = Identifier(class_name, key)
-            rv[identifier.key] = identifier  # ensure unique identifiers
-    return list(rv.values())
+        rv = {}
+        for class_name, values in identifiers.items():
+            for key in _flatten_csv_list(values):
+                if not key:
+                    continue
+                if not class_name:
+                    class_name = self.class_name_lookup[key]
+                identifier = Identifier(class_name, key)
+                rv[identifier.key] = identifier  # ensure unique identifiers
+        return list(rv.values())
 
 
 def _group_by_class_name(identifiers: List[str]) -> DefaultDict[str, List[str]]:
