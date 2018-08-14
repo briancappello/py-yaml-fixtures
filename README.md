@@ -2,6 +2,11 @@
 
 A library for loading (database) fixtures written in [Jinja](http://jinja.pocoo.org/)-templated YAML files. It comes with support for [faker](http://faker.readthedocs.io/en/master/) and relationships between fixture objects.
 
+## Useful Links
+
+* [Fork it on GitHub](https://github.com/briancappello/py-yaml-fixtures)
+* [Documentation](https://py-yaml-fixtures.readthedocs.io/en/latest/)
+
 ## Installation
 
 ```bash
