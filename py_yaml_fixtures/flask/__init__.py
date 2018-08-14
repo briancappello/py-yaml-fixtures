@@ -10,7 +10,7 @@ class PyYAMLFixtures:
         app.config.setdefault('PY_YAML_FIXTURES_MODELS_MODULE', 'app.models')
         app.config.setdefault('PY_YAML_FIXTURES_DIR', 'db/fixtures')
         command_name = app.config.setdefault('PY_YAML_FIXTURES_COMMAND_NAME',
-                                             'import_fixtures')
+                                             'import-fixtures')
 
         if command_name:
             app.cli.add_command(import_fixtures, command_name)
