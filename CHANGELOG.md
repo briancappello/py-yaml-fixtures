@@ -1,5 +1,9 @@
 # CHANGELOG
 
+# 0.2.0 (unreleased)
+
+* Add support for Flask-SQLAlchemy-Unchained
+
 # 0.1.3 (2018/08/14)
 
 * Support multi-line identifier strings

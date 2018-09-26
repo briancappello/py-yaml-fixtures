@@ -5,7 +5,14 @@ import os
 
 from flask import current_app as app
 from flask.cli import with_appcontext
-from flask_sqlalchemy import Model
+try:
+    from flask_sqlalchemy import Model as StockBaseModel
+except ImportError:
+    StockBaseModel = None
+try:
+    from flask_sqlalchemy_unchained import BaseModel as UnchainedBaseModel
+except ImportError:
+    UnchainedBaseModel = None
 from ..fixtures_loader import FixturesLoader
 from ..factories import SQLAlchemyModelFactory
 
@@ -29,7 +36,8 @@ def import_fixtures():
 
     model_classes = dict(inspect.getmembers(
         models_module,
-        lambda obj: inspect.isclass(obj) and issubclass(obj, Model)))
+        lambda obj: inspect.isclass(obj) and issubclass(obj, (
+            StockBaseModel, UnchainedBaseModel))))
 
     factory = SQLAlchemyModelFactory(app.extensions['sqlalchemy'].db.session,
                                      model_classes)
