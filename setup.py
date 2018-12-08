@@ -36,6 +36,9 @@ setup(
             'pytest',
             'sqlalchemy>=1.0',
         ],
+        'django': [
+            'django>=2.0',
+        ],
         'docs': [
             'm2r',
             'sphinx',

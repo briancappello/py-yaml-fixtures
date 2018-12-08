@@ -2,6 +2,8 @@
 
 A library for loading database fixtures written in [Jinja2](http://jinja.pocoo.org/)-templated YAML files. It comes with support for [faker](http://faker.readthedocs.io/en/master/) and relationships between fixture objects.
 
+Currently supports Django 2+, Flask with Flask-SQLAlchemy, and standalone SQLAlchemy.
+
 ## Useful Links
 
 * [Fork it on GitHub](https://github.com/briancappello/py-yaml-fixtures)
@@ -9,17 +11,65 @@ A library for loading database fixtures written in [Jinja2](http://jinja.pocoo.o
 
 ## Installation
 
+Requires Python 3.5+
+
 ```bash
+# with django
+pip install py-yaml-fixtures[django]
+
+# with flask and sqlalchemy
+pip install py-yaml-fixtures[flask]
+
+# with standalone sqlalchemy
 pip install py-yaml-fixtures[sqlalchemy]
 ```
-
-## Currently Supported Factories
-
-* SQLAlchemyModelFactory (requires SQLAlchemy be installed)
 
 ## Usage
 
 This a generic library, so you can use it however you want, but the intended use case is to add a CLI command to your project for seeding your database. It could also perhaps be useful for creating test fixtures, if you're looking for a different solution than [factory_boy](https://factoryboy.readthedocs.io/en/latest/). 
+
+* [With Django](https://github.com/briancappello/py-yaml-fixtures#with-django)
+* [With Flask and Flask-SQLAlchemy](https://github.com/briancappello/py-yaml-fixtures#with-flask-and-flask-sqlalchemy)
+* [With Standalone SQLAlchemy](https://github.com/briancappello/py-yaml-fixtures#with-standalone-sqlalchemy)
+* [Fixture File Syntax](https://github.com/briancappello/py-yaml-fixtures#fixture-file-syntax)
+* [Faker and Jinja Templating](https://github.com/briancappello/py-yaml-fixtures#faker-and-jinja-templating)
+
+### With Django
+
+Add `django_yaml_fixtures` to your `settings.INSTALLED_APPS`.
+
+The `django_yaml_fixtures` app adds one command: `manage.py import_fixtures`. It looks for fixture files in every app configured in your `settings.INSTALLED_APPS` that has a `fixtures` folder. For example:
+
+```
+settings.INSTALLED_APPS = [
+   # ...
+   'django_yaml_fixtures',
+   'first_app',
+   'second_app',
+   'third_app',
+]
+
+# app folder structure:
+first_app/fixtures/
+first_app/fixtures/ModelOne.yaml
+second_app/fixtures/
+second_app/fixtures/ModelTwo.yaml
+third_app/fixtures/
+third_app/fixtures/ModelThree.yaml
+third_app/fixtures/ModelFour.yaml
+```
+
+To load the models fixtures into the database, you would run:
+
+```bash
+cd your-django-project-root
+
+# to load fixtures from all apps
+./manage.py import_fixtures
+
+# or specify a list of app names to limit which apps it loads from
+./manage.py import_fixtures first_app second_app
+```
 
 ### With Flask and Flask-SQLAlchemy
 
@@ -190,7 +240,7 @@ Contributions are welcome!
 
 ### Adding support for other ORMs
 
-You must implement a concrete factory by extending `py_yaml_fixtures.FactoryInterface`. There are two abstract methods that must be implemented: `create_or_update`, `get_relationships`, and `maybe_convert_values` (see the SQLAlchemyModelFactory implementation as a reference).
+You must implement a concrete factory by extending `py_yaml_fixtures.FactoryInterface`. There are three abstract methods that must be implemented: `create_or_update`, `get_relationships`, and `maybe_convert_values` (see the [DjangoModelFactory](https://github.com/briancappello/py-yaml-fixtures/blob/master/py_yaml_fixtures/factories/django.py) and [SQLAlchemyModelFactory](https://github.com/briancappello/py-yaml-fixtures/blob/master/py_yaml_fixtures/factories/sqlalchemy.py) implementations as examples).
 
 ## License
 
