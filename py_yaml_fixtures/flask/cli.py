@@ -32,7 +32,7 @@ def import_fixtures():
     model_classes = dict(inspect.getmembers(models_module, _is_model_class))
     factory = SQLAlchemyModelFactory(app.extensions['sqlalchemy'].db.session,
                                      model_classes)
-    loader = FixturesLoader(factory, fixtures_dir=fixtures_dir)
+    loader = FixturesLoader(factory, fixture_dirs=[fixtures_dir])
 
     click.echo('Loading fixtures from %r for models in %r' % (
         fixtures_dir, models_module_name))

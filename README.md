@@ -80,7 +80,7 @@ session = Session()
 
 # then we create the factory, and pass it to the fixtures loader
 factory = SQLAlchemyModelFactory(session, models)
-loader = FixturesLoader(factory, fixtures_dir=PY_YAML_FIXTURES_DIR)
+loader = FixturesLoader(factory, fixture_dirs=[PY_YAML_FIXTURES_DIR])
 
 # to create all the fixtures in the database, we have to call loader.create_all()
 if __name__ == '__main__':

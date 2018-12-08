@@ -22,21 +22,16 @@ class FixturesLoader:
 
     def __init__(self,
                  factory: FactoryInterface,
-                 fixtures_dir: Optional[str] = None,
-                 fixture_dirs: Optional[List[str]] = None,
+                 fixture_dirs: List[str],
                  env: Optional[jinja2.Environment] = None):
         """
-        :param factory: An instance of the concrete factory to use for creating
-                        models
-        :param fixtures_dir: Path to folder to load template fixtures from
+        :param factory: An instance of the concrete factory to use for creating models
+        :param fixture_dirs: A list of directory paths to load fixtures templates from
         :param env: An optional jinja environment (the default one will include
                     faker as a template global, but if you want to customize its
                     tags/filters/etc, then you need to create an env yourself - the
                     correct loader will be set automatically for you)
         """
-        if not (fixtures_dir or fixture_dirs):
-            raise TypeError('One of `fixtures_dir` or `fixture_dirs` is required.')
-
         self.env = self._ensure_env(env)
         """The Jinja Environment used for rendering the yaml template files."""
 
@@ -44,7 +39,7 @@ class FixturesLoader:
         self.factory = factory
         """The factory instance."""
 
-        self.fixture_dirs = fixture_dirs if fixture_dirs else [fixtures_dir]
+        self.fixture_dirs = fixture_dirs
         """A list of directories where fixture files should be loaded from."""
 
         self.relationships = {}
