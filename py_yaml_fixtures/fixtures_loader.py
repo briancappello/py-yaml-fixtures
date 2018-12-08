@@ -65,6 +65,7 @@ class FixturesLoader:
         if not self._loaded:
             self._load_data()
 
+        # build up a directed acyclic graph to determine the model instantiation order
         dag = nx.DiGraph()
         for model_class_name, dependencies in self.relationships.items():
             dag.add_node(model_class_name)
@@ -78,20 +79,21 @@ class FixturesLoader:
                             ', '.join(['{a} -> {b}'.format(a=a, b=b)
                                        for a, b in nx.find_cycle(dag)]))
 
-        models = {}
+        # create or update the models in the determined order
+        rv = {}
         for model_class_name in creation_order:
             for identifier_key, data in self.model_fixtures[model_class_name].items():
                 identifier = Identifier(model_class_name, identifier_key)
                 data = self.factory.maybe_convert_values(identifier, data)
                 self._cache[identifier_key] = data
 
-                models[identifier_key], created = \
-                    self.factory.create_or_update(identifier, data)
+                model_instance, created = self.factory.create_or_update(identifier, data)
                 if progress_callback:
-                    progress_callback(identifier, models[identifier_key], created)
+                    progress_callback(identifier, model_instance, created)
+                rv[identifier_key] = model_instance
 
         self.factory.commit()
-        return models
+        return rv
 
     def convert_identifiers(self, identifiers: Union[Identifier, List[Identifier]]):
         """
@@ -118,21 +120,31 @@ class FixturesLoader:
         """
         filenames = []
         model_identifiers = defaultdict(list)
+
+        # attempt to load fixture files from given directories (first pass)
+        # for each valid model fixture file, read it into the cache and get the
+        # list of identifier keys from it
         for fixtures_dir in self.fixture_dirs:
             for filename in os.listdir(fixtures_dir):
                 path = os.path.join(fixtures_dir, filename)
                 file_ext = filename[filename.find('.')+1:]
+
+                # make sure it's a valid fixture file
                 if os.path.isfile(path) and file_ext in {'yml', 'yaml'}:
                     filenames.append(filename)
                     with open(path) as f:
                         self._cache[filename] = f.read()
 
-                    class_name = filename[:filename.rfind('.')]
+                    # preload to determine identifier keys
                     with self._preloading_env() as env:
                         rendered_yaml = env.get_template(filename).render()
                         data = yaml.load(rendered_yaml)
-                        model_identifiers[class_name] = list(data.keys())
+                        if data:
+                            class_name = filename[:filename.rfind('.')]
+                            model_identifiers[class_name] = list(data.keys())
 
+        # second pass where we can render the jinja templates with knowledge of all
+        # the model identifier keys (allows random_model and random_models to work)
         for filename in filenames:
             self._load_from_yaml(filename, model_identifiers)
 
@@ -162,6 +174,9 @@ class FixturesLoader:
         """
         rv = {}
         relationships = set()
+        if not fixture_data:
+            return rv, relationships
+
         for identifier_id, data in fixture_data.items():
             new_data = {}
             for col_name, value in data.items():
