@@ -42,6 +42,11 @@ setup(
             'sphinx-autobuild',
             'sphinx-rtd-theme',
         ],
+        'flask': [
+            'click>=6.7',
+            'flask>=0.12',
+            'flask-sqlalchemy>=2.2',
+        ],
         'sqlalchemy': [
             'sqlalchemy>=1.0',
         ],
