@@ -47,6 +47,10 @@ def import_fixtures():
 
     click.echo('Loading fixtures from %r for models in %r' % (
         fixtures_dir, models_module_name))
-    loader.create_all(lambda identifier, model, created: click.echo(
-        f'{"Creating" if created else "Updating"} {identifier.key}: {model!r}'))
+    loader.create_all(lambda identifier, model, created: print(
+        '{action} {identifier}: {model}'.format(
+            action='Creating' if created else 'Updating',
+            identifier=identifier.key,
+            model=repr(model)
+        )))
     click.echo('Done adding fixtures')

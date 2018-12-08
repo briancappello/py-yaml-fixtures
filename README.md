@@ -85,7 +85,11 @@ loader = FixturesLoader(factory, fixtures_dir=PY_YAML_FIXTURES_DIR)
 # of identifier strings)
 if __name__ == '__main__':
     loader.create_all(lambda identifier, model, created: print(
-        f'{"Creating" if created else "Updating"} {identifier.key}: {model!r}'))
+        '{action} {identifier}: {model}'.format(
+            action='Creating' if created else 'Updating',
+            identifier=identifier.key,
+            model=repr(model)
+        )))
 ```
 
 ### Fixture File Syntax

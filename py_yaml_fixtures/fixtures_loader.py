@@ -79,10 +79,9 @@ class FixturesLoader:
         try:
             creation_order = reversed(list(nx.topological_sort(dag)))
         except nx.NetworkXUnfeasible:
-            msg = 'Circular dependency detected between models'
-            problem_graph = ', '.join([f'{a} -> {b}'
-                                       for a, b in nx.find_cycle(dag)])
-            raise Exception(f'{msg}: {problem_graph}')
+            raise Exception('Circular dependency detected between models: '
+                            ', '.join(['{a} -> {b}'.format(a=a, b=b)
+                                       for a, b in nx.find_cycle(dag)]))
 
         models = {}
         for model_class_name in creation_order:

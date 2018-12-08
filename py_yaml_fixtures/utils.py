@@ -92,7 +92,7 @@ def _convert_str(value: str) -> List[Identifier]:
     while True:
         match = IDENTIFIER_RE.search(value, prev.end() if prev else 0)
         if not match and not rv:
-            raise Exception(f'Identifier must have a class name. {value}')
+            raise Exception('Identifier must have a class name. (got %r)' % value)
         elif not match:
             return rv
 
