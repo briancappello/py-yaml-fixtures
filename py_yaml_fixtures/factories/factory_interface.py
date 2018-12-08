@@ -1,11 +1,11 @@
 from typing import *
 
-from .types import Identifier
+from ..types import Identifier
 
 
 class FactoryInterface:
     def __init__(self):
-        from .fixtures_loader import FixturesLoader
+        from ..fixtures_loader import FixturesLoader
         self.loader: FixturesLoader = None  # set by the FixturesLoader
 
     def create_or_update(self,

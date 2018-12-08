@@ -6,9 +6,9 @@ from sqlalchemy.ext.associationproxy import AssociationProxy
 from types import FunctionType
 from typing import *
 
-from ..types import Identifier
+from . import FactoryInterface
 from .. import utils
-from ..factory_interface import FactoryInterface
+from ..types import Identifier
 
 
 class SQLAlchemyModelFactory(FactoryInterface):

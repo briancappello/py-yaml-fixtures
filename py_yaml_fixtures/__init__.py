@@ -11,4 +11,5 @@
 __version__ = '0.3.2'
 
 
+from .factories import FactoryInterface
 from .fixtures_loader import FixturesLoader

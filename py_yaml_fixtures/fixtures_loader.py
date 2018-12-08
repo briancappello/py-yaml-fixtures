@@ -8,7 +8,7 @@ from collections import defaultdict
 from faker import Faker
 from typing import *
 
-from .factory_interface import FactoryInterface
+from .factories import FactoryInterface
 from .types import Identifier
 from .utils import normalize_identifiers, random_model, random_models
 

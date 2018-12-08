@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.4.0 (unreleased)
+
+- move `py_yaml_fixtures.factory_interface.FactoryInterface` into `py_yaml_fixtures.factories`
+
 ## v0.3.2 (2018/12/08)
 
 - add support for loading fixtures from one or more directories
