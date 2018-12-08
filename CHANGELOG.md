@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.3.2 (unreleased)
+
+- add support for loading fixtures from one or more directories
+
 ## v0.3.1 (2018/12/07)
 
 - add back support for optional YAML list syntax when the number of identifiers is two or more

@@ -22,7 +22,8 @@ class FixturesLoader:
 
     def __init__(self,
                  factory: FactoryInterface,
-                 fixtures_dir: str,
+                 fixtures_dir: Optional[str] = None,
+                 fixture_dirs: Optional[List[str]] = None,
                  env: Optional[jinja2.Environment] = None):
         """
         :param factory: An instance of the concrete factory to use for creating
@@ -33,6 +34,9 @@ class FixturesLoader:
                     tags/filters/etc, then you need to create an env yourself - the
                     correct loader will be set automatically for you)
         """
+        if not (fixtures_dir or fixture_dirs):
+            raise TypeError('One of `fixtures_dir` or `fixture_dirs` is required.')
+
         self.env = self._ensure_env(env)
         """The Jinja Environment used for rendering the yaml template files."""
 
@@ -40,8 +44,8 @@ class FixturesLoader:
         self.factory = factory
         """The factory instance."""
 
-        self.fixtures_dir = fixtures_dir
-        """The directory where fixture files should be loaded from."""
+        self.fixture_dirs = fixture_dirs if fixture_dirs else [fixtures_dir]
+        """A list of directories where fixture files should be loaded from."""
 
         self.relationships = {}
         """A dict keyed by model name where values are a list of related model names."""
@@ -120,19 +124,20 @@ class FixturesLoader:
         """
         filenames = []
         model_identifiers = defaultdict(list)
-        for filename in os.listdir(self.fixtures_dir):
-            path = os.path.join(self.fixtures_dir, filename)
-            file_ext = filename[filename.find('.')+1:]
-            if os.path.isfile(path) and file_ext in {'yml', 'yaml'}:
-                filenames.append(filename)
-                with open(path) as f:
-                    self._cache[filename] = f.read()
+        for fixtures_dir in self.fixture_dirs:
+            for filename in os.listdir(fixtures_dir):
+                path = os.path.join(fixtures_dir, filename)
+                file_ext = filename[filename.find('.')+1:]
+                if os.path.isfile(path) and file_ext in {'yml', 'yaml'}:
+                    filenames.append(filename)
+                    with open(path) as f:
+                        self._cache[filename] = f.read()
 
-                class_name = filename[:filename.rfind('.')]
-                with self._preloading_env() as env:
-                    rendered_yaml = env.get_template(filename).render()
-                    data = yaml.load(rendered_yaml)
-                    model_identifiers[class_name] = list(data.keys())
+                    class_name = filename[:filename.rfind('.')]
+                    with self._preloading_env() as env:
+                        rendered_yaml = env.get_template(filename).render()
+                        data = yaml.load(rendered_yaml)
+                        model_identifiers[class_name] = list(data.keys())
 
         for filename in filenames:
             self._load_from_yaml(filename, model_identifiers)
