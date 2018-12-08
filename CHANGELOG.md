@@ -1,29 +1,31 @@
 # CHANGELOG
 
-# 0.3.0 (2018/12/07)
 
-* Add support for determining the correct order to instantiate models (`py-yaml-fixtures` should now work with at least semi-complex relationships)
-* Major refactor to simplify the `FixturesLoader` class
-* Add `random_model` and `random_models` Jinja helper functions
 
-# 0.2.0 (2018/09/26)
+## v0.3.0 (2018/12/07)
 
-* Add support for Flask-SQLAlchemy-Unchained
+- add support for determining the correct order to instantiate models (`py-yaml-fixtures` should now work with at least semi-complex relationships)
+- major refactor to simplify the `FixturesLoader` class
+- add `random_model` and `random_models` Jinja helper functions
 
-# 0.1.3 (2018/08/14)
+## v0.2.0 (2018/09/26)
 
-* Support multi-line identifier strings
-* Support empty identifier strings (only a class name without any key)
-* Add documentation
+- Add support for Flask-SQLAlchemy-Unchained
 
-# 0.1.2 (2018/07/31)
+## v0.1.3 (2018/08/14)
 
-* fix `datetime_factory` and `date_factory` utility functions when passed None
+- support multi-line identifier strings
+- support empty identifier strings (only a class name without any key)
+- add documentation
 
-## 0.1.1 (2018/04/06)
+## v0.1.2 (2018/07/31)
 
-* fix release (misconfigured `include_packages` in `setup.py`)
+- fix `datetime_factory` and `date_factory` utility functions when passed None
 
-## 0.1.0 (2018/04/06)
+## v0.1.1 (2018/04/06)
 
-* initial release
+- fix release (misconfigured `include_packages` in `setup.py`)
+
+## v0.1.0 (2018/04/06)
+
+- initial release
