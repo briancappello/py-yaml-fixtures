@@ -5,15 +5,8 @@ import os
 
 from flask import current_app as app
 from flask.cli import with_appcontext
-
-try:
-    from flask_sqlalchemy import Model as StockBaseModel
-except ImportError:
-    StockBaseModel = None
-try:
-    from flask_sqlalchemy_unchained import BaseModel as UnchainedBaseModel
-except ImportError:
-    UnchainedBaseModel = None
+from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm.exc import UnmappedClassError
 
 from ..fixtures_loader import FixturesLoader
 from ..factories.sqlalchemy import SQLAlchemyModelFactory
@@ -36,11 +29,7 @@ def import_fixtures():
                'PY_YAML_FIXTURES_DIR is set correctly' % fixtures_dir)
         raise NotADirectoryError(msg)
 
-    model_classes = dict(inspect.getmembers(
-        models_module,
-        lambda obj: inspect.isclass(obj) and issubclass(obj, (
-            StockBaseModel, UnchainedBaseModel))))
-
+    model_classes = dict(inspect.getmembers(models_module, _is_model_class))
     factory = SQLAlchemyModelFactory(app.extensions['sqlalchemy'].db.session,
                                      model_classes)
     loader = FixturesLoader(factory, fixtures_dir=fixtures_dir)
@@ -54,3 +43,14 @@ def import_fixtures():
             model=repr(model)
         )))
     click.echo('Done adding fixtures')
+
+
+def _is_model_class(obj):
+    if not inspect.isclass(obj):
+        return False
+    try:
+        class_mapper(obj)
+    except UnmappedClassError:
+        return False
+    else:
+        return True
