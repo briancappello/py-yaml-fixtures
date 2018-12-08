@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## v0.3.1 (unreleased)
+## v0.3.1 (2018/12/07)
 
 - add back support for optional YAML list syntax when the number of identifiers is two or more
 
