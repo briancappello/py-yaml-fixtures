@@ -22,11 +22,11 @@ from ..factories.sqlalchemy import SQLAlchemyModelFactory
 @click.command()
 @with_appcontext
 def import_fixtures():
-    models_module_name = app.config.get('PY_YAML_FIXTURES_MODELS_MODULE')
+    models_module_name = app.config.get('FLASK_MODELS_MODULE')
     try:
         models_module = importlib.import_module(models_module_name)
     except (ImportError, ModuleNotFoundError) as e:
-        e.msg = (e.msg + '. Please make sure the PY_YAML_FIXTURES_MODELS_MODULE'
+        e.msg = (e.msg + '. Please make sure the FLASK_MODELS_MODULE'
                          ' is set correctly.')
         raise e
 

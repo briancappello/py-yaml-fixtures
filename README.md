@@ -23,7 +23,7 @@ This a generic library, so you can use it however you want, but the intended use
 
 ### With Flask and Flask-SQLAlchemy
 
-This is the minimal setup required to make a flask cli command available to import fixtures, by default, `flask import-fixtures`:
+This is the minimal setup required to make a Flask cli command available to import fixtures, by default, `flask import-fixtures`:
 
 ```python
 from flask import Flask
@@ -34,12 +34,14 @@ app = Flask(__name__)
 db = SQLAlchemy(app)
 
 # optional configuration settings (these are all the defaults):
-app.config['PY_YAML_FIXTURES_MODELS_MODULE'] = 'app.models'
+app.config['FLASK_MODELS_MODULE'] = 'app.models'
 app.config['PY_YAML_FIXTURES_DIR'] = 'db/fixtures'
 app.config['PY_YAML_FIXTURES_COMMAND_NAME'] = 'import-fixtures'
 
 fixtures = PyYAMLFixtures(app)
 ```
+
+After creating fixture files in the configured `PY_YAML_FIXTURES_DIR`, you would then be able to run `flask import-fixtures` to load the fixtures into the database.
 
 ### With Standalone SQLAlchemy
 

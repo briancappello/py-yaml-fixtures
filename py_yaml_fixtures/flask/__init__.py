@@ -7,7 +7,7 @@ class PyYAMLFixtures:
             self.init_app(app)
 
     def init_app(self, app):
-        app.config.setdefault('PY_YAML_FIXTURES_MODELS_MODULE', 'app.models')
+        app.config.setdefault('FLASK_MODELS_MODULE', 'app.models')
         app.config.setdefault('PY_YAML_FIXTURES_DIR', 'db/fixtures')
         command_name = app.config.setdefault('PY_YAML_FIXTURES_COMMAND_NAME',
                                              'import-fixtures')
