@@ -3,6 +3,7 @@
 ## v0.4.0 (unreleased)
 
 - move `py_yaml_fixtures.factory_interface.FactoryInterface` into `py_yaml_fixtures.factories`
+- `SQLAlchemyModelFactory` must now be imported from `py_yaml_fixtures.factories.sqlalchemy`
 
 ## v0.3.2 (2018/12/08)
 

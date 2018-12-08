@@ -41,13 +41,13 @@ app.config['PY_YAML_FIXTURES_COMMAND_NAME'] = 'import-fixtures'
 fixtures = PyYAMLFixtures(app)
 ```
 
-### Generic Usage
+### With Standalone SQLAlchemy
 
 ```python
 import sqlalchemy as sa
 
 from py_yaml_fixtures import FixturesLoader
-from py_yaml_fixtures.factories import SQLAlchemyModelFactory
+from py_yaml_fixtures.factories.sqlalchemy import SQLAlchemyModelFactory
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
@@ -80,9 +80,7 @@ session = Session()
 factory = SQLAlchemyModelFactory(session, models)
 loader = FixturesLoader(factory, fixtures_dir=PY_YAML_FIXTURES_DIR)
 
-# to actually create all the fixtures in the database, we have to call
-# loader.create_all (it can also create only specific models by passing a list
-# of identifier strings)
+# to create all the fixtures in the database, we have to call loader.create_all()
 if __name__ == '__main__':
     loader.create_all(lambda identifier, model, created: print(
         '{action} {identifier}: {model}'.format(

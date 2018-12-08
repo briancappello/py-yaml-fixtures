@@ -16,7 +16,7 @@ except ImportError:
     UnchainedBaseModel = None
 
 from ..fixtures_loader import FixturesLoader
-from ..factories import SQLAlchemyModelFactory
+from ..factories.sqlalchemy import SQLAlchemyModelFactory
 
 
 @click.command()
