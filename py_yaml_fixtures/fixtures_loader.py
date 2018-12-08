@@ -174,7 +174,7 @@ class FixturesLoader:
                 if identifiers:
                     relationships.add(identifiers[0].class_name)
 
-                if isinstance(value, str):
+                if isinstance(value, str) and len(identifiers) <= 1:
                     new_data[col_name] = identifiers[0] if identifiers else None
                 else:
                     new_data[col_name] = identifiers
