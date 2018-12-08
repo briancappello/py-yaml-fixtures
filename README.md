@@ -1,6 +1,6 @@
 # Py YAML Fixtures
 
-A library for loading (database) fixtures written in [Jinja](http://jinja.pocoo.org/)-templated YAML files. It comes with support for [faker](http://faker.readthedocs.io/en/master/) and relationships between fixture objects.
+A library for loading database fixtures written in [Jinja2](http://jinja.pocoo.org/)-templated YAML files. It comes with support for [faker](http://faker.readthedocs.io/en/master/) and relationships between fixture objects.
 
 ## Useful Links
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
 ### Fixture File Syntax
 
-Using the two models shown just above as an example, to populate these models with some fixtures data, you must create `yaml` files in `PY_YAML_FIXTURES_DIR` named after each model's class name (`Parent` and `Child` in our case). For example:
+Using the `Parent` and `Child` models shown just above as an example, to populate these models with some fixtures data, you must create `yaml` files in `PY_YAML_FIXTURES_DIR` named after each model's class name (`Parent` and `Child` in our case). For example:
 
 ```yaml
 # db/fixtures/Child.yaml
@@ -138,6 +138,11 @@ parent3:
 # then even the YAML list syntax is optional, and you can write stuff like this:
 parent4:
   name: Parent 4
+  children: Child(alice, bob)
+
+# or spanning multiple lines:
+parent5:
+  name: Parent 5
   children: >
     Child(
       grace,
@@ -167,6 +172,14 @@ parent{{ i }}:
   children: {{ random_models('Child', 0, range(0, 4)|random) }}
 {% endfor %}
 ```
+
+There are also two included Jinja helper functions:
+
+* `random_model(model_name: str)`
+   - get one random `Child` model: `{{ random_model('Child') }}`
+* `random_models(model_name: str, min_count: int = 0, max_count: int = 3)`
+   - get a list of 0 to 3 `Child` models: `{{ random_models('Child') }}`
+   - get a list of 1 to 4 `Child` models: `{{ random_models('Child', 1, 4) }}`
 
 ## Contributing
 
