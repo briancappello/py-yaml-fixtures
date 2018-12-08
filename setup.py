@@ -7,7 +7,7 @@ with open('README.md', encoding='utf-8') as f:
 
 setup(
     name='Py YAML Fixtures',
-    version='0.3.1',
+    version='0.3.2',
     description='Load database fixtures from in Jinja-templated YAML files',
     long_description=long_description,
     url='https://github.com/briancappello/py-yaml-fixtures',

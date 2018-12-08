@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## v0.3.2 (unreleased)
+## v0.3.2 (2018/12/08)
 
 - add support for loading fixtures from one or more directories
 
