@@ -11,7 +11,7 @@ class FactoryInterface:
     def create_or_update(self,
                          identifier: Identifier,
                          data: Dict[str, Any],
-                         ) -> object:
+                         ) -> Tuple[object, bool]:
         """
         Create or update a model.
 
@@ -19,7 +19,17 @@ class FactoryInterface:
                            attributes
         :param data: A dictionary keyed by column name, with values being the
                      converted values to set on the model instance
-        :return: The model instance.
+        :return: A two-tuple of model instance and whether or not it was created.
+        """
+        raise NotImplementedError
+
+    def get_relationships(self, class_name: str) -> Set[str]:
+        """
+        Return a list of model attribute names that could have relationships for
+        the given model class name.
+
+        :param class_name: The name of the class name to discover relationships for.
+        :return: A set of model attribute names.
         """
         raise NotImplementedError
 

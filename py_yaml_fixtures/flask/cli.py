@@ -5,6 +5,7 @@ import os
 
 from flask import current_app as app
 from flask.cli import with_appcontext
+
 try:
     from flask_sqlalchemy import Model as StockBaseModel
 except ImportError:
@@ -13,6 +14,7 @@ try:
     from flask_sqlalchemy_unchained import BaseModel as UnchainedBaseModel
 except ImportError:
     UnchainedBaseModel = None
+
 from ..fixtures_loader import FixturesLoader
 from ..factories import SQLAlchemyModelFactory
 
@@ -45,6 +47,6 @@ def import_fixtures():
 
     click.echo('Loading fixtures from %r for models in %r' % (
         fixtures_dir, models_module_name))
-    for identifier_key, model in loader.create_all().items():
-        click.echo('Created %s: %r' % (identifier_key, model))
+    loader.create_all(lambda identifier, model, created: click.echo(
+        f'{"Creating" if created else "Updating"} {identifier.key}: {model!r}'))
     click.echo('Done adding fixtures')

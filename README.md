@@ -10,7 +10,7 @@ A library for loading (database) fixtures written in [Jinja](http://jinja.pocoo.
 ## Installation
 
 ```bash
-pip install py-yaml-fixtures
+pip install py-yaml-fixtures[sqlalchemy]
 ```
 
 ## Currently Supported Factories
@@ -84,8 +84,8 @@ loader = FixturesLoader(factory, fixtures_dir=PY_YAML_FIXTURES_DIR)
 # loader.create_all (it can also create only specific models by passing a list
 # of identifier strings)
 if __name__ == '__main__':
-   for identifier_key, model_instance in loader.create_all().items():
-      print(f'Created {identifier_key}: {model_instance!r}')
+    loader.create_all(lambda identifier, model, created: print(
+        f'{"Creating" if created else "Updating"} {identifier.key}: {model!r}'))
 ```
 
 ### Fixture File Syntax
@@ -158,17 +158,11 @@ child{{ i }}:
 # db/fixtures/Parent.yaml
 
 {% for i in range(0, 10) %}
-{%- set num_children = range(0, 4)|random %}
 parent{{ i }}:
   name: {{ faker.name() }}
-  children: {% if num_children == 0 %}[]{%- endif %}
-    {%- for num in range(0, num_children) %}
-    - 'Child(child{{ range(0, 20)|random }})'
-    {%- endfor %}
+  children: {{ random_models('Child', 0, range(0, 4)|random) }}
 {% endfor %}
 ```
-
-Any duplicates in child relationships will automatically be removed, so it's safe to use random in this way, as long as you're fine with a child belonging to a random number of parents (if at all).
 
 ## Contributing
 
@@ -179,7 +173,7 @@ Contributions are welcome!
 
 ### Adding support for other ORMs
 
-You must implement a concrete factory by extending `py_yaml_fixtures.FactoryInterface`. There are two abstract methods that must be implemented: `create_or_update` and `maybe_convert_values` (see the SQLAlchemyModelFactory implementation as a reference).
+You must implement a concrete factory by extending `py_yaml_fixtures.FactoryInterface`. There are two abstract methods that must be implemented: `create_or_update`, `get_relationships`, and `maybe_convert_values` (see the SQLAlchemyModelFactory implementation as a reference).
 
 ## License
 

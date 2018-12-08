@@ -1,17 +1,16 @@
+import contextlib
+import jinja2
+import networkx as nx
 import os
-import re
 import yaml
 
 from collections import defaultdict
 from faker import Faker
-from jinja2 import Environment, FileSystemLoader
 from typing import *
 
 from .factory_interface import FactoryInterface
-from .types import AttrDict, Identifier
-
-
-identifier_re = re.compile('(?P<class_name>\w+)\((?P<identifiers>[\w,\s]+)\)')
+from .types import Identifier
+from .utils import normalize_identifiers, random_model, random_models
 
 
 class FixturesLoader:
@@ -21,21 +20,10 @@ class FixturesLoader:
     passed in.
     """
 
-    # The Jinja Environment
-    env = None
-
-    # A set of the class names whose fixture files have already been loaded
-    loaded_class_names = set()
-
-    # A dictionary of identifier keys to their class names
-    class_name_lookup = {}
-
-    # A dictionary of identifier keys to their raw data from the yaml files
-    model_fixtures = {}
-
-    def __init__(self, factory: FactoryInterface,
+    def __init__(self,
+                 factory: FactoryInterface,
                  fixtures_dir: str,
-                 env: Optional[Environment] = None,):
+                 env: Optional[jinja2.Environment] = None):
         """
         :param factory: An instance of the concrete factory to use for creating
                         models
@@ -45,184 +33,183 @@ class FixturesLoader:
                     tags/filters/etc, then you need to create an env yourself - the
                     correct loader will be set automatically for you)
         """
+        self.env = self._ensure_env(env)
+        """The Jinja Environment used for rendering the yaml template files."""
+
         factory.loader = self
         self.factory = factory
-        self.env = env
+        """The factory instance."""
+
         self.fixtures_dir = fixtures_dir
+        """The directory where fixture files should be loaded from."""
 
-    def get_models(self, identifiers: Union[str, List[str]]):
-        """
-        Returns a dictionary of all models in the fixtures.
+        self.relationships = {}
+        """A dict keyed by model name where values are a list of related model names."""
 
-        :param identifiers: A single identifier string, or a list of identifier
-                            strings
-        :return: An object where the attributes are the identifier keys, and the
-                 values are model instances
-        """
-        return AttrDict(self.create_all(identifiers))
+        self.model_fixtures = defaultdict(dict)
+        """A dict of models names to their semi-processed data from the yaml files."""
 
-    def create_all(self,
-                   identifiers: Optional[Union[str, List[str]]] = None,
-                   ) -> Dict[str, object]:
-        """
-        Create all models found in fixtures (or, if passed the ``identifiers``
-        parameter, it will only create those listed)
+        self._cache = {}
+        self._loaded = False
 
-        :param identifiers: An identifier string, or a list of identifier strings
-        :return: A dictionary of identifier key to model instances
+    def create_all(self, progress_callback: Optional[callable] = None) -> Dict[str, object]:
         """
-        if identifiers:
-            identifiers = self._flatten_identifiers(identifiers)
-        else:
+        Creates all the models discovered from fixture files in :attr:`fixtures_dir`.
+
+        :param progress_callback: An optional function to track progress. It must take three
+                               parameters:
+                                - an :class:`Identifier`
+                                - the model instance
+                                - and a boolean specifying whether the model was created
+        :return: A dictionary keyed by identifier where the values are model instances.
+        """
+        if not self._loaded:
             self._load_data()
-            identifiers = [Identifier(class_name, identifier)
-                           for identifier, class_name in
-                           self.class_name_lookup.items()]
 
-        models = {identifier.key: self._create(identifier)
-                  for identifier in identifiers}
+        dag = nx.DiGraph()
+        for model_class_name, dependencies in self.relationships.items():
+            dag.add_node(model_class_name)
+            for dep in dependencies:
+                dag.add_edge(model_class_name, dep)
+
+        try:
+            creation_order = reversed(list(nx.topological_sort(dag)))
+        except nx.NetworkXUnfeasible:
+            msg = 'Circular dependency detected between models'
+            problem_graph = ', '.join([f'{a} -> {b}'
+                                       for a, b in nx.find_cycle(dag)])
+            raise Exception(f'{msg}: {problem_graph}')
+
+        models = {}
+        for model_class_name in creation_order:
+            for identifier_key, data in self.model_fixtures[model_class_name].items():
+                identifier = Identifier(model_class_name, identifier_key)
+                data = self.factory.maybe_convert_values(identifier, data)
+                self._cache[identifier_key] = data
+
+                models[identifier_key], created = \
+                    self.factory.create_or_update(identifier, data)
+                if progress_callback:
+                    progress_callback(identifier, models[identifier_key], created)
+
         self.factory.commit()
         return models
 
-    def create(self, class_name_or_identifier_string: str,
-               identifier_key: Optional[str] = None) -> object:
+    def convert_identifiers(self, identifiers: Union[Identifier, List[Identifier]]):
         """
-        Create a single model.
+        Convert an individual :class:`Identifier` to a model instance,
+        or a list of Identifiers to a list of model instances.
+        """
+        if not identifiers:
+            return identifiers
 
-        :param class_name_or_identifier_string: Either an identifier string,
-                                                or a class name
-        :param identifier_key: If the first argument was a class name, then
-                               this is required. Otherwise, it's ignored.
-        :return: A model instance
-        """
-        if identifier_key:
-            class_name = class_name_or_identifier_string
-            identifier = Identifier(class_name, identifier_key)
+        def _create_or_update(identifier):
+            data = self._cache[identifier.key]
+            return self.factory.create_or_update(identifier, data)[0]
+
+        if isinstance(identifiers, Identifier):
+            return _create_or_update(identifiers)
+        elif isinstance(identifiers, list) and isinstance(identifiers[0], Identifier):
+            return [_create_or_update(identifier) for identifier in identifiers]
         else:
-            identifier_string = class_name_or_identifier_string
-            identifier = _convert_str(identifier_string)[0]
+            raise TypeError('`identifiers` must be an Identifier or list of Identifiers.')
 
-        data = self.model_fixtures[identifier.key]
-        model = self.factory.create_or_update(identifier, data)
-        self.factory.commit()
-        return model
-
-    def _create(self, identifier: Identifier) -> object:
-        if not identifier.class_name:
-            raise Exception('Identifier must have a class name!')
-        self._maybe_load_data([identifier])
-        data = self.factory.maybe_convert_values(
-            identifier, self.model_fixtures[identifier.key])
-        return self.factory.create_or_update(identifier, data)
-
-    def convert_identifiers(self, identifiers: Union[str, List[str]],
-                            ) -> Union[object, List[object]]:
+    def _load_data(self):
         """
-        Converts identifier strings into the appropriate model instances
-
-        :param identifiers: An identifier string, or a list of identifier strings
-        :return: The converted model instance(s)
+        Load all fixtures from :attr:`fixtures_dir`
         """
-        if isinstance(identifiers, list):
-            return [self._create(identifier)
-                    for identifier in self._flatten_identifiers(identifiers)]
-        return self.convert_identifier(identifiers)
-
-    def convert_identifier(self, identifier: str) -> Union[object, List[object]]:
-        result = [self._create(identifier)
-                  for identifier in self._flatten_identifiers(identifier)]
-        return result[0] if len(result) == 1 else result
-
-    def _maybe_load_data(self, identifiers: List[Identifier]):
-        class_names = {class_name for class_name, _ in identifiers}
-        class_names = class_names.difference(self.loaded_class_names)
-        if not class_names:
-            return
-        self._load_data(class_names)
-
-    def _load_data(self, class_names: Optional[Set[str]] = None):
+        filenames = []
+        model_identifiers = defaultdict(list)
         for filename in os.listdir(self.fixtures_dir):
             path = os.path.join(self.fixtures_dir, filename)
-            if os.path.isfile(path):
+            file_ext = filename[filename.find('.')+1:]
+            if os.path.isfile(path) and file_ext in {'yml', 'yaml'}:
+                filenames.append(filename)
+                with open(path) as f:
+                    self._cache[filename] = f.read()
+
                 class_name = filename[:filename.rfind('.')]
-                if (not class_names
-                        or None in class_names
-                        or class_name in class_names):
-                    self._load_from_yaml(filename)
-                    self.loaded_class_names.add(class_name)
+                with self._preloading_env() as env:
+                    rendered_yaml = env.get_template(filename).render()
+                    data = yaml.load(rendered_yaml)
+                    model_identifiers[class_name] = list(data.keys())
 
-    def _load_from_yaml(self, filename: str):
-        self._ensure_env()
-        rendered_yaml = self.env.get_template(filename).render()
-        fixture_data = yaml.load(rendered_yaml)
+        for filename in filenames:
+            self._load_from_yaml(filename, model_identifiers)
 
+        self._loaded = True
+
+    def _load_from_yaml(self, filename: str, model_identifiers: Dict[str, List[str]]):
+        """
+        Load fixtures from the given filename
+        """
         class_name = filename[:filename.rfind('.')]
-        for identifier_id, data in fixture_data.items():
-            # FIXME check for dups
-            self.class_name_lookup[identifier_id] = class_name
-            self.model_fixtures[identifier_id] = data
+        rendered_yaml = self.env.get_template(filename).render(
+            model_identifiers=model_identifiers)
+        fixture_data, self.relationships[class_name] = self._post_process_yaml_data(
+            yaml.load(rendered_yaml),
+            self.factory.get_relationships(class_name))
 
-    def _ensure_env(self):
-        if not self.env:
-            self.env = Environment()
-        if not self.env.loader:
-            self.env.loader = FileSystemLoader(self.fixtures_dir)
-        if 'faker' not in self.env.globals:
+        for identifier_key, data in fixture_data.items():
+            self.model_fixtures[class_name][identifier_key] = data
+
+    def _post_process_yaml_data(self,
+                                fixture_data: Dict[str, Dict[str, Any]],
+                                relationship_columns: Set[str],
+                                ) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
+        """
+        Convert and normalize identifier strings to Identifiers, as well as determine
+        class relationships.
+        """
+        rv = {}
+        relationships = set()
+        for identifier_id, data in fixture_data.items():
+            new_data = {}
+            for col_name, value in data.items():
+                if col_name not in relationship_columns:
+                    new_data[col_name] = value
+                    continue
+
+                identifiers = normalize_identifiers(value)
+                if identifiers:
+                    relationships.add(identifiers[0].class_name)
+
+                if isinstance(value, str):
+                    new_data[col_name] = identifiers[0] if identifiers else None
+                else:
+                    new_data[col_name] = identifiers
+
+            rv[identifier_id] = new_data
+        return rv, list(relationships)
+
+    def _ensure_env(self, env: Union[jinja2.Environment, None]):
+        """
+        Make sure the jinja environment is minimally configured.
+        """
+        if not env:
+            env = jinja2.Environment()
+        if not env.loader:
+            env.loader = jinja2.FunctionLoader(lambda filename: self._cache[filename])
+        if 'faker' not in env.globals:
             faker = Faker()
             faker.seed(1234)
-            self.env.globals['faker'] = faker
+            env.globals['faker'] = faker
+        if 'random_model' not in env.globals:
+            env.globals['random_model'] = jinja2.contextfunction(random_model)
+        if 'random_models' not in env.globals:
+            env.globals['random_models'] = jinja2.contextfunction(random_models)
+        return env
 
-    def _flatten_identifiers(self,
-                             identifiers: Union[str, List[str]],
-                             ) -> List[Identifier]:
-        if isinstance(identifiers, str):
-            identifiers = _convert_str(identifiers)
-        if isinstance(identifiers, (list, tuple)):
-            identifiers = _group_by_class_name(identifiers)
-
-        rv = {}
-        for class_name, values in identifiers.items():
-            for key in _flatten_csv_list(values):
-                if not key:
-                    continue
-                if not class_name:
-                    class_name = self.class_name_lookup[key]
-                identifier = Identifier(class_name, key)
-                rv[identifier.key] = identifier  # ensure unique identifiers
-        return list(rv.values())
-
-
-def _group_by_class_name(identifiers: List[str]) -> DefaultDict[str, List[str]]:
-    rv = defaultdict(list)
-    for v in identifiers:
-        if isinstance(v, Identifier):
-            rv[v.class_name].append(v.key)
-        elif isinstance(v, str):
-            for identifier in _convert_str(v):
-                rv[identifier.class_name].append(identifier.key)
-        else:
-            raise Exception(
-                'Unexpected type {t} (for {v!r})'.format(t=type(v), v=v))
-    return rv
-
-
-def _flatten_csv_list(identifier_keys: List[str]) -> List[str]:
-    return [key.strip()
-            for keys in identifier_keys
-            for key in keys.strip(',').split(',')]
-
-
-def _convert_str(value: str) -> List[Identifier]:
-    value = ''.join(value.splitlines())
-    rv = []
-    prev = None
-    while True:
-        match = identifier_re.search(value, prev.end() if prev else 0)
-        if not match and not rv:
-            return [Identifier(None, value)]
-        elif not match:
-            return rv
-
-        rv.append(Identifier(match.group('class_name'),
-                             match.group('identifiers')))
-        prev = match
+    @contextlib.contextmanager
+    def _preloading_env(self):
+        """
+        A "stripped" jinja environment.
+        """
+        ctx = self.env.globals
+        try:
+            ctx['random_model'] = lambda *a, **kw: None
+            ctx['random_models'] = lambda *a, **kw: None
+            yield self.env
+        finally:
+            ctx['random_model'] = jinja2.contextfunction(random_model)
+            ctx['random_models'] = jinja2.contextfunction(random_models)

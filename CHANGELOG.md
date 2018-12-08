@@ -1,5 +1,11 @@
 # CHANGELOG
 
+# 0.3.0 (unreleased)
+
+* Add support for determining the correct order to instantiate models (`py-yaml-fixtures` should now work with at least semi-complex relationships)
+* Major refactor to simplify the `FixturesLoader` class
+* Add `random_model` and `random_models` Jinja helper functions
+
 # 0.2.0 (2018/09/26)
 
 * Add support for Flask-SQLAlchemy-Unchained

@@ -27,15 +27,23 @@ setup(
     install_requires=[
         'faker>=0.8.7',
         'jinja2>=2.10',
+        'networkx>=2.2',
         'python-dateutil>=2.6.1',
         'PyYAML>=3.12',
     ],
     extras_require={
+        'dev': [
+            'pytest',
+            'sqlalchemy>=1.0',
+        ],
         'docs': [
             'm2r',
             'sphinx',
             'sphinx-autobuild',
             'sphinx-rtd-theme',
+        ],
+        'sqlalchemy': [
+            'sqlalchemy>=1.0',
         ],
     },
     python_requires='>=3.5',
