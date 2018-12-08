@@ -1,6 +1,6 @@
 # CHANGELOG
 
-# 0.3.0 (unreleased)
+# 0.3.0 (2018/12/07)
 
 * Add support for determining the correct order to instantiate models (`py-yaml-fixtures` should now work with at least semi-complex relationships)
 * Major refactor to simplify the `FixturesLoader` class
