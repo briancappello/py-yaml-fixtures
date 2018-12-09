@@ -1,6 +1,9 @@
 -r requirements.txt
 
+django>=2.1
+flask>=1.0
 m2r
 sphinx
 sphinx-autobuild
 sphinx-rtd-theme
+sqlalchemy>=1.2

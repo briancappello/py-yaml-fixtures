@@ -35,6 +35,8 @@ setup(
     ],
     extras_require={
         'dev': [
+            'django>=2.1',
+            'flask>=1.0',
             'pytest',
             'sqlalchemy>=1.0',
         ],
@@ -42,10 +44,13 @@ setup(
             'django>=2.0',
         ],
         'docs': [
+            'django>=2.1',
+            'flask>=1.0',
             'm2r',
             'sphinx',
             'sphinx-autobuild',
             'sphinx-rtd-theme',
+            'sqlalchemy>=1.0',
         ],
         'flask-sqlalchemy': [
             'click>=6.7',
