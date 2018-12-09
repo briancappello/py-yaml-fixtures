@@ -3,9 +3,8 @@
 ## v0.4.0 (unreleased)
 
 - add Django support
-- move `py_yaml_fixtures.factory_interface.FactoryInterface` into `py_yaml_fixtures.factories`
-- `SQLAlchemyModelFactory` must now be imported from `py_yaml_fixtures.factories.sqlalchemy`
-- rename `PY_YAML_FIXTURES_MODELS_MODULE` to `FLASK_MODELS_MODULE`
+- add Flask Unchained support
+- improve docs
 
 ## v0.3.2 (2018/12/08)
 
@@ -17,7 +16,7 @@
 
 ## v0.3.0 (2018/12/07)
 
-- add support for determining the correct order to instantiate models (`py-yaml-fixtures` should now work with at least semi-complex relationships)
+- add support for determining the correct order to instantiate models (`py-yaml-fixtures` *should* now work with complex relationships)
 - major refactor to simplify the `FixturesLoader` class
 - add `random_model` and `random_models` Jinja helper functions
 

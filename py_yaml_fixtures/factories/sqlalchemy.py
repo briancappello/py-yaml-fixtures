@@ -12,6 +12,9 @@ from ..types import Identifier
 
 
 class SQLAlchemyModelFactory(FactoryInterface):
+    """
+    Concrete factory for the SQLAlchemy ORM.
+    """
     def __init__(self,
                  session: sa_orm.Session,
                  models: Union[List[type], Dict[str, type]],

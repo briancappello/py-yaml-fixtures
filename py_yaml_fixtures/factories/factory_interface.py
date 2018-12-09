@@ -4,6 +4,10 @@ from ..types import Identifier
 
 
 class FactoryInterface:
+    """
+    Abstract base class for ORM factories. Extend this base class to add support
+    for a database ORM.
+    """
     def __init__(self):
         from ..fixtures_loader import FixturesLoader
         self.loader: FixturesLoader = None  # set by the FixturesLoader

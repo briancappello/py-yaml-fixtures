@@ -8,8 +8,10 @@ with open('README.md', encoding='utf-8') as f:
 setup(
     name='Py YAML Fixtures',
     version='0.3.2',
-    description='Load database fixtures from in Jinja-templated YAML files',
+    description='Load Django and SQLAlchemy database fixtures '
+                'from Jinja-templated YAML files',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/briancappello/py-yaml-fixtures',
     author='Brian Cappello',
     license='MIT',
@@ -45,10 +47,16 @@ setup(
             'sphinx-autobuild',
             'sphinx-rtd-theme',
         ],
-        'flask': [
+        'flask-sqlalchemy': [
             'click>=6.7',
             'flask>=0.12',
             'flask-sqlalchemy>=2.2',
+        ],
+        'flask-unchained': [
+            'flask-migrate>=2.2.1',
+            'flask-unchained>=0.7',
+            'flask-sqlalchemy-unchained>=0.6.9',
+            'sqlalchemy-unchained>=0.6.9',
         ],
         'sqlalchemy': [
             'sqlalchemy>=1.0',

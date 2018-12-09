@@ -8,6 +8,9 @@ from ..types import Identifier
 
 
 class DjangoModelFactory(FactoryInterface):
+    """
+    Concrete factory for the Django ORM.
+    """
     def __init__(self,
                  models: Union[List[type], Dict[str, type]],
                  date_factory: Optional[FunctionType] = None,

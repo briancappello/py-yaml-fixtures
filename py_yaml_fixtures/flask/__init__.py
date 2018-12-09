@@ -1,3 +1,5 @@
+# this package provides the Flask extension and click command to import fixtures
+
 from .cli import import_fixtures
 
 

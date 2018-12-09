@@ -18,20 +18,19 @@ class FixturesLoader:
     The factory "driver" class. Does most of the hard work of loading fixtures,
     leaving the responsibility of model instantiation up to the factory class
     passed in.
+
+    :param factory: An instance of the concrete factory to use for creating models
+    :param fixture_dirs: A list of directory paths to load fixtures templates from
+    :param env: An optional jinja environment (the default one will include
+                faker as a template global, but if you want to customize its
+                tags/filters/etc, then you need to create an env yourself - the
+                correct loader will be set automatically for you)
     """
 
     def __init__(self,
                  factory: FactoryInterface,
                  fixture_dirs: List[str],
                  env: Optional[jinja2.Environment] = None):
-        """
-        :param factory: An instance of the concrete factory to use for creating models
-        :param fixture_dirs: A list of directory paths to load fixtures templates from
-        :param env: An optional jinja environment (the default one will include
-                    faker as a template global, but if you want to customize its
-                    tags/filters/etc, then you need to create an env yourself - the
-                    correct loader will be set automatically for you)
-        """
         self.env = self._ensure_env(env)
         """The Jinja Environment used for rendering the yaml template files."""
 

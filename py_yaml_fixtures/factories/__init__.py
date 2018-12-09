@@ -1,3 +1,4 @@
-from .factory_interface import FactoryInterface
+# this package stores the concrete ORM implementations of FactoryInterface
 
-# we don't import any concrete factories here to prevent import errors from optional deps
+# don't import any concrete factories here to prevent import errors from optional deps
+from .factory_interface import FactoryInterface

@@ -26,14 +26,60 @@ def date_factory(value):
 
 
 def random_model(ctx, model_class_name):
+    """
+    Get a random model identifier by class name. For example::
+
+        # db/fixtures/Category.yml
+        {% for i in range(0, 10) %}
+        category{{ i }}:
+            name: {{ faker.name() }}
+        {% endfor %}
+
+        # db/fixtures/Post.yml
+        a_blog_post:
+            category: {{ random_model('Category') }}
+
+    Will render to something like the following::
+
+        # db/fixtures/Post.yml (rendered)
+        a blog_post:
+            category: "Category(category7)"
+
+    :param ctx: The context variables of the current template (passed automatically)
+    :param model_class_name: The class name of the model to get.
+    """
     model_identifiers = ctx['model_identifiers'][model_class_name]
     if not model_identifiers:
         return 'None'
     idx = random.randrange(0, len(model_identifiers))
-    return '%s(%s)' % (model_class_name, model_identifiers[idx])
+    return '"%s(%s)"' % (model_class_name, model_identifiers[idx])
 
 
 def random_models(ctx, model_class_name, min_count=0, max_count=3):
+    """
+    Get a random model identifier by class name. Example usage::
+
+        # db/fixtures/Tag.yml
+        {% for i in range(0, 10) %}
+        tag{{ i }}:
+            name: {{ faker.name() }}
+        {% endfor %}
+
+        # db/fixtures/Post.yml
+        a_blog_post:
+            tags: {{ random_models('Tag') }}
+
+    Will render to something like the following::
+
+        # db/fixtures/Post.yml (rendered)
+        a blog_post:
+            tags: ["Tag(tag2, tag5)"]
+
+    :param ctx: The context variables of the current template (passed automatically)
+    :param model_class_name: The class name of the models to get.
+    :param min_count: The minimum number of models to return.
+    :param max_count: The maximum number of models to return.
+    """
     model_identifiers = ctx['model_identifiers'][model_class_name]
     num_models = random.randint(min_count, min(max_count, len(model_identifiers)))
     if num_models == 0:
