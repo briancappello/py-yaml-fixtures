@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## v0.4.0 (unreleased)
+## v0.4.0 (2018/12/08)
 
 - add Django support
 - add Flask Unchained support
