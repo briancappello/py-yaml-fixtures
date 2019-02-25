@@ -1,11 +1,11 @@
 # Py YAML Fixtures
 
-A library for loading database fixtures written in [Jinja2](http://jinja.pocoo.org/)-templated YAML files. It comes with support for [faker](http://faker.readthedocs.io/en/master/) and relationships between fixture objects. Currently it works with the following packages:
+A (*work-in-progress*) library for loading database fixtures written in [Jinja2](http://jinja.pocoo.org/)-templated YAML files. It comes with support for [faker](http://faker.readthedocs.io/en/master/) and relationships between fixture objects. Currently it works with the following packages:
 
-- **[Django 2+](https://www.djangoproject.com/)**
-- **[Flask SQLAlchemy](http://flask-sqlalchemy.pocoo.org)**
-- **[Flask Unchained](https://github.com/briancappello/flask-unchained)**
-- Standalone **[SQLAlchemy](https://www.sqlalchemy.org/)**
+- Django 2+
+- Flask SQLAlchemy
+- Flask Unchained
+- Standalone SQLAlchemy
 
 Requires **Python 3.5+**
 

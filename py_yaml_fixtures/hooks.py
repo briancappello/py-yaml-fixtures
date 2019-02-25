@@ -1,3 +1,5 @@
+# this file is for Flask Unchained
+
 import os
 
 from flask_unchained import AppFactoryHook, Bundle

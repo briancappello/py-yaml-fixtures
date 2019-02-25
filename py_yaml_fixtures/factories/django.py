@@ -27,9 +27,7 @@ class DjangoModelFactory(FactoryInterface):
             for rel in (list(model._meta.fields) + list(model._meta.related_objects)):
                 if isinstance(rel, db.ManyToManyRel):
                     self.relations[rel.related_model.__name__].add(rel.field.name)
-                elif isinstance(rel, db.ManyToOneRel):
-                    self.relations[rel.model.__name__].add(rel.name)
-                elif isinstance(rel, db.ForeignObject):
+                elif isinstance(rel, (db.ForeignObject, db.ManyToOneRel)):
                     self.relations[rel.model.__name__].add(rel.name)
 
     def create_or_update(self,
