@@ -6,8 +6,8 @@ with open('README.md', encoding='utf-8') as f:
 
 
 setup(
-    name='Py YAML Fixtures',
-    version='0.4.0',
+    name='Py-YAML-Fixtures',
+    version='0.4.1',
     description='Load Django and SQLAlchemy database fixtures '
                 'from Jinja-templated YAML files',
     long_description=long_description,
