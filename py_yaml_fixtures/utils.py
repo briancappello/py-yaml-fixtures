@@ -2,7 +2,7 @@ import random
 import re
 
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
 from dateutil.parser import parse as parse_datetime
 from typing import *
 
@@ -13,16 +13,27 @@ IDENTIFIER_RE = re.compile(r'(?P<class_name>\w+)\((?P<identifiers>[\w,\s]+)\)')
 
 
 def datetime_factory(value):
-    if value in {'today', 'now', 'utcnow'}:
+    if value in {None, '', 'None'}:
+        return None
+    elif isinstance(value, datetime):
+        return value
+    elif isinstance(value, date):
+        return datetime.combine(value, time(tzinfo=timezone.utc))
+    elif value in {'today', 'now', 'utcnow'}:
         return datetime.now(timezone.utc)
-    elif value not in {None, 'None'}:
-        return parse_datetime(value)
+    return parse_datetime(value)
 
 
 def date_factory(value):
+    if isinstance(value, datetime):
+        return value.date()
+    elif isinstance(value, date):
+        return value
+
     dt = datetime_factory(value)
     if isinstance(dt, datetime):
-        return dt.date
+        return dt.date()
+    return dt
 
 
 def random_model(ctx, model_class_name):
@@ -90,6 +101,7 @@ def random_models(ctx, model_class_name, min_count=0, max_count=3):
         idx = random.randrange(0, len(model_identifiers))
         added.add(model_identifiers[idx])
     return '["%s(%s)"]' % (model_class_name, ','.join(added))
+
 
 def normalize_identifiers(identifiers: Union[str, List[str]]) -> List[Identifier]:
     if not identifiers:
