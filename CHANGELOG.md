@@ -3,6 +3,7 @@
 ## v0.5.0 (unreleased)
 
 - fix bugs and add tests for `date_factory` and `datetime_factory` functions
+- support loading multiple models from individual files named `fixtures.yml` or `fixtures.yaml`
 
 ## v0.4.0 (2018/12/08)
 

@@ -4,6 +4,8 @@ import os
 
 from flask_unchained import AppFactoryHook, Bundle
 
+from .fixtures_loader import MULTI_CLASS_FILENAMES
+
 
 class ModelFixtureFoldersHook(AppFactoryHook):
     """
@@ -21,18 +23,23 @@ class ModelFixtureFoldersHook(AppFactoryHook):
         pass  # noop
 
     @classmethod
-    def get_fixtures_dir(cls, bundle: Bundle):
+    def get_fixtures_dirs(cls, bundle: Bundle):
         folder_name = getattr(bundle,
                               cls.bundle_override_module_name_attr,
                               cls.bundle_module_name)
         if not folder_name:
-            return None
+            return []
+
+        bundle_dir = None
+        for filename in MULTI_CLASS_FILENAMES:
+            if os.path.exists(os.path.join(bundle.folder, filename)):
+                bundle_dir = bundle.folder
 
         fixtures_dir = os.path.join(bundle.folder, folder_name)
         if not os.path.exists(fixtures_dir):
-            return None
+            fixtures_dir = None
 
-        return fixtures_dir
+        return [x for x in [bundle_dir, fixtures_dir] if x]
 
 
 __all__ = [

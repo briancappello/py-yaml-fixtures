@@ -20,9 +20,9 @@ def import_fixtures(bundles=None):
     fixture_dirs = []
     for bundle_name in (bundles or unchained.bundles.keys()):
         bundle = unchained.bundles[bundle_name]
-        fixtures_dir = ModelFixtureFoldersHook.get_fixtures_dir(bundle)
-        if fixtures_dir:
-            fixture_dirs.append(fixtures_dir)
+        dirs = ModelFixtureFoldersHook.get_fixtures_dirs(bundle)
+        if dirs:
+            fixture_dirs.extend(dirs)
             click.echo(f'Loading fixtures from {bundle_name}')
 
     if not fixture_dirs:

@@ -13,6 +13,9 @@ from .types import Identifier
 from .utils import normalize_identifiers, random_model, random_models
 
 
+MULTI_CLASS_FILENAMES = {'fixtures.yml', 'fixtures.yaml'}
+
+
 class FixturesLoader:
     """
     The factory "driver" class. Does most of the hard work of loading fixtures,
@@ -117,7 +120,7 @@ class FixturesLoader:
         """
         Load all fixtures from :attr:`fixtures_dir`
         """
-        filenames = []
+        filepaths = []
         model_identifiers = defaultdict(list)
 
         # attempt to load fixture files from given directories (first pass)
@@ -125,43 +128,59 @@ class FixturesLoader:
         # list of identifier keys from it
         for fixtures_dir in self.fixture_dirs:
             for filename in os.listdir(fixtures_dir):
-                path = os.path.join(fixtures_dir, filename)
+                filepath = os.path.join(fixtures_dir, filename)
                 file_ext = filename[filename.find('.')+1:]
 
                 # make sure it's a valid fixture file
-                if os.path.isfile(path) and file_ext in {'yml', 'yaml'}:
-                    filenames.append(filename)
-                    with open(path) as f:
-                        self._cache[filename] = f.read()
+                if os.path.isfile(filepath) and file_ext in {'yml', 'yaml'}:
+                    filepaths.append(filepath)
+                    with open(filepath) as f:
+                        self._cache[filepath] = f.read()
 
                     # preload to determine identifier keys
                     with self._preloading_env() as env:
-                        rendered_yaml = env.get_template(filename).render()
-                        data = yaml.load(rendered_yaml)
+                        rendered_yaml = env.get_template(filepath).render()
+                        data = yaml.load(rendered_yaml, Loader=yaml.FullLoader)
                         if data:
-                            class_name = filename[:filename.rfind('.')]
-                            model_identifiers[class_name] = list(data.keys())
+                            if filename in MULTI_CLASS_FILENAMES:
+                                for class_name in data:
+                                    model_identifiers[class_name] = list(
+                                        data[class_name].keys())
+                            else:
+                                class_name = filename[:filename.rfind('.')]
+                                model_identifiers[class_name] = list(data.keys())
 
         # second pass where we can render the jinja templates with knowledge of all
         # the model identifier keys (allows random_model and random_models to work)
-        for filename in filenames:
-            self._load_from_yaml(filename, model_identifiers)
+        for filepath in filepaths:
+            self._load_from_yaml(filepath, model_identifiers)
 
         self._loaded = True
 
-    def _load_from_yaml(self, filename: str, model_identifiers: Dict[str, List[str]]):
+    def _load_from_yaml(self, filepath: str, model_identifiers: Dict[str, List[str]]):
         """
         Load fixtures from the given filename
         """
-        class_name = filename[:filename.rfind('.')]
-        rendered_yaml = self.env.get_template(filename).render(
+        rendered_yaml = self.env.get_template(filepath).render(
             model_identifiers=model_identifiers)
-        fixture_data, self.relationships[class_name] = self._post_process_yaml_data(
-            yaml.load(rendered_yaml),
-            self.factory.get_relationships(class_name))
+        data = yaml.load(rendered_yaml, Loader=yaml.FullLoader)
 
-        for identifier_key, data in fixture_data.items():
-            self.model_fixtures[class_name][identifier_key] = data
+        identifier_data = {}
+        filename = os.path.basename(filepath)
+        if filename in MULTI_CLASS_FILENAMES:
+            for class_name in data:
+                d, self.relationships[class_name] = self._post_process_yaml_data(
+                    data[class_name], self.factory.get_relationships(class_name))
+                identifier_data[class_name] = d
+        else:
+            class_name = filename[:filename.rfind('.')]
+            d, self.relationships[class_name] = self._post_process_yaml_data(
+                data, self.factory.get_relationships(class_name))
+            identifier_data[class_name] = d
+
+        for class_name, d in identifier_data.items():
+            for identifier_key, instance_data in d.items():
+                self.model_fixtures[class_name][identifier_key] = instance_data
 
     def _post_process_yaml_data(self,
                                 fixture_data: Dict[str, Dict[str, Any]],
@@ -202,7 +221,7 @@ class FixturesLoader:
         if not env:
             env = jinja2.Environment()
         if not env.loader:
-            env.loader = jinja2.FunctionLoader(lambda filename: self._cache[filename])
+            env.loader = jinja2.FunctionLoader(lambda filepath: self._cache[filepath])
         if 'faker' not in env.globals:
             faker = Faker()
             faker.seed(1234)

@@ -4,7 +4,6 @@
 * document extending it
 
 in the future:
-* support loading from a single file with multiple models in it
 * maybe support dumping from database
 * look up existing models from within identifiers by kwarg, eg User(email='a@b.com')
 
