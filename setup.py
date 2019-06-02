@@ -27,11 +27,11 @@ setup(
     ],
     packages=find_packages(exclude=['docs', 'tests']),
     install_requires=[
-        'faker>=0.8.7',
-        'jinja2>=2.10',
-        'networkx>=2.2',
-        'python-dateutil>=2.6.1',
-        'PyYAML>=3.12',
+        'faker>=1.0.7',
+        'jinja2>=2.10.1',
+        'networkx>=2.3',
+        'python-dateutil>=2.8.0',
+        'PyYAML>=5.1',
     ],
     extras_require={
         'dev': [
@@ -54,14 +54,14 @@ setup(
         ],
         'flask-sqlalchemy': [
             'click>=6.7',
-            'flask>=0.12',
+            'flask>=1.0',
             'flask-sqlalchemy>=2.2',
         ],
         'flask-unchained': [
             'flask-migrate>=2.2.1',
-            'flask-unchained>=0.7',
-            'flask-sqlalchemy-unchained>=0.6.9',
-            'sqlalchemy-unchained>=0.6.9',
+            'flask-unchained>=0.7.9',
+            'flask-sqlalchemy-unchained>=0.7.3',
+            'sqlalchemy-unchained>=0.7.6',
         ],
         'sqlalchemy': [
             'sqlalchemy>=1.0',

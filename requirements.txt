@@ -1,5 +1,5 @@
-Faker==1.0.0
-jinja2==2.10
-python-dateutil==2.7.5
-PyYAML>=3.13
-networkx==2.2
+Faker==1.0.7
+jinja2==2.10.1
+python-dateutil==2.8.0
+PyYAML==5.1
+networkx==2.3
