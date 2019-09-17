@@ -266,7 +266,7 @@ flask db import-fixtures
 flask db import-fixtures app security_bundle
 ```
 
-#### With Standalone [SQLAlchemy](https://www.sqlalchemy.org/)
+#### With Standalone SQLAlchemy
 
 ```python
 import sqlalchemy as sa
@@ -282,18 +282,22 @@ PY_YAML_FIXTURES_DIR = 'db/fixtures'
 BaseModel = declarative_base()
 
 class Parent(BaseModel):
+    __tablename__ = 'parent'
+
     id = sa.Column(sa.Integer, primary_key=True)
     name = sa.Column(sa.String)
     children = relationship('Child', back_populates='parent')
 
 class Child(BaseModel):
+    __tablename__ = 'child'
+
     id = sa.Column(sa.Integer, primary_key=True)
     name = sa.Column(sa.String)
     parent_id = sa.Column(sa.Integer, sa.ForeignKey('parent.id'))
     parent = relationship('Parent', back_populates='children')
 
 # first we need a list of our model classes to provide to the factory
-models = [Parent, Child]
+model_classes = [Parent, Child]
 
 # and we need a session connected to the database, also for the factory
 engine = create_engine('sqlite:///:memory:')
@@ -302,11 +306,15 @@ Session.configure(bind=engine)
 session = Session()
 
 # then we create the factory, and pass it to the fixtures loader
-factory = SQLAlchemyModelFactory(session, models)
+factory = SQLAlchemyModelFactory(session, model_classes)
 loader = FixturesLoader(factory, fixture_dirs=[PY_YAML_FIXTURES_DIR])
 
 # to create all the fixtures in the database, we have to call loader.create_all()
 if __name__ == '__main__':
+    # create the tables in the database
+    BaseModel.metadata.create_all(bind=engine)
+
+    # and use the loader to import the fixtures data into the database
     loader.create_all(lambda identifier, model, created: print(
         '{action} {identifier}: {model}'.format(
             action='Creating' if created else 'Updating',

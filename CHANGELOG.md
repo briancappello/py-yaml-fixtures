@@ -4,6 +4,7 @@
 
 - fix bugs and add tests for `date_factory` and `datetime_factory` functions
 - support loading multiple models from individual files named `fixtures.yml` or `fixtures.yaml`
+- fix bugs with loading fixtures using stock SQLAlchemy
 
 ## v0.4.0 (2018/12/08)
 

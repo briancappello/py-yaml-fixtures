@@ -72,15 +72,19 @@ class SQLAlchemyModelFactory(FactoryInterface):
             return None
 
         with self.session.no_autoflush:
-            return model_class.query.filter_by(**filter_kwargs).one_or_none()
+            return self.session.query(model_class).filter_by(**filter_kwargs).one_or_none()
 
     @functools.lru_cache()
     def get_relationships(self, class_name: str) -> Set[str]:
         rv = set()
         model_class = self.models[class_name]
         for col_name, value in model_class.__mapper__.all_orm_descriptors.items():
+            # FIXME: this is apparently needed to make value.impl accessible?
+            getattr(value, 'info', None)
+
             if (isinstance(value, AssociationProxy)
-                    or (hasattr(value, 'impl') and value.impl.uses_objects)):
+                    or (getattr(value, 'impl', None) is not None
+                        and value.impl.uses_objects)):
                 rv.add(col_name)
         return rv
 
