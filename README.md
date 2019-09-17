@@ -36,7 +36,56 @@ pip install py-yaml-fixtures
 
 ## Fixture File Syntax
 
-Using the `Parent` and `Child` models shown just above as an example, to populate these models with some fixtures data, you must create `.yaml` (or `.yml`) files in `PY_YAML_FIXTURES_DIR` named after each model's class name (`Parent` and `Child` in our case). For example:
+First, let's define some example models to work with:
+
+```python
+class Parent(BaseModel):
+    __tablename__ = 'parent'
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    name = sa.Column(sa.String)
+    children = relationship('Child', back_populates='parent')
+
+class Child(BaseModel):
+    __tablename__ = 'child'
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    name = sa.Column(sa.String)
+    parent_id = sa.Column(sa.Integer, sa.ForeignKey('parent.id'))
+    parent = relationship('Parent', back_populates='children')
+```
+
+To populate these models with fixtures data, you can either create a single `fixtures.yaml` file in your fixtures directory where the top-level keys are the model class names:
+
+```yaml
+# db/fixtures/fixtures.yaml
+
+Child:
+    alice:
+        name: Alice
+
+    bob:
+        name: Bob
+
+    grace:
+        name: Grace
+
+    judy:
+        name: Judy
+
+Parent:
+    parent1:
+        name: Parent 1
+        children: ['Child(alice)', 'Child(bob)']
+
+    parent2:
+        name: Parent 2
+        children:
+          - 'Child(grace)'
+          - 'Child(judy)'
+```
+
+Or you can create YAML files named after each model's class name (`Parent` and `Child` in our case). For example:
 
 ```yaml
 # db/fixtures/Child.yaml
@@ -54,9 +103,23 @@ judy:
     name: Judy
 ```
 
+```yaml
+# db/fixtures/Parent.yaml
+
+parent1:
+    name: Parent 1
+    children: ['Child(alice)', 'Child(bob)']
+
+parent2:
+    name: Parent 2
+    children:
+        - 'Child(grace)'
+        - 'Child(judy)'
+```
+
 ### Relationships
 
-The top-level YAML keys (`alice`, `bob`, `grace`, `judy`) are unique ids used to reference objects in relationships. They must be unique across *all* model fixtures.
+The top-level YAML keys (`alice`, `bob`, `grace`, `judy`, `parent1`, `parent2`) are unique ids used to reference objects in relationships. They must be unique across *all* model fixtures.
 
 To reference them, we use an *identifier string*. An identifier string consists of two parts: the class name, and one or more ids. For singular relationships the notation is `'ModelClassName(id)'`. For the many-side of relationships, the notation is the same, just combined with YAML's list syntax:
 
@@ -148,7 +211,7 @@ pip install py-yaml-fixtures[sqlalchemy]
 * [With Flask Unchained](https://github.com/briancappello/py-yaml-fixtures#with-flask-unchained)
 * [With Standalone SQLAlchemy](https://github.com/briancappello/py-yaml-fixtures#with-standalone-sqlalchemy)
 
-#### With [Django](https://www.djangoproject.com/)
+#### With Django
 
 Add `py_yaml_fixtures` to your `settings.INSTALLED_APPS`.
 
@@ -172,15 +235,15 @@ project-root/auth/fixtures/ModelFour.yaml
 ```
 
 ```python
-# project-root/your_app/settings.py
+# project-root/app/settings.py
 
 INSTALLED_APPS = [
    # ...
    'py_yaml_fixtures',
 
-   'app',
-   'blog',
    'auth',
+   'blog',
+   'app',
 ]
 ```
 
@@ -196,7 +259,7 @@ cd your-django-project-root
 ./manage.py import_fixtures app blog
 ```
 
-#### With [Flask](http://flask.pocoo.org/) and [Flask-SQLAlchemy](http://flask-sqlalchemy.pocoo.org)
+#### With Flask and Flask-SQLAlchemy
 
 This is the minimal setup required to make a Flask cli command available to import fixtures, by default, `flask import-fixtures`:
 
@@ -209,16 +272,16 @@ app = Flask(__name__)
 db = SQLAlchemy(app)
 
 # optional configuration settings (these are all the defaults):
-app.config['FLASK_MODELS_MODULE'] = 'app.models'
-app.config['PY_YAML_FIXTURES_DIR'] = 'db/fixtures'
-app.config['PY_YAML_FIXTURES_COMMAND_NAME'] = 'import-fixtures'
+app.config['FLASK_MODELS_MODULE'] = 'app.models'  # where all of your model classes are imported
+app.config['PY_YAML_FIXTURES_DIR'] = 'db/fixtures'  # where your fixtures file(s) live
+app.config['PY_YAML_FIXTURES_COMMAND_NAME'] = 'import-fixtures'  # the name of the CLI command
 
-fixtures = PyYAMLFixtures(app)
+fixtures = PyYAMLFixtures(app)  # instantiate the PyYAMLFixtures Flask Extension
 ```
 
 After creating fixture files in the configured `PY_YAML_FIXTURES_DIR`, you would then be able to run `flask import-fixtures` to load the fixtures into the database.
 
-#### With [Flask Unchained](https://github.com/briancappello/flask-unchained)
+#### With Flask Unchained
 
 Add `py_yaml_fixtures` to your `unchained_config.BUNDLES`.
 
@@ -232,13 +295,13 @@ project-root/app/fixtures/
 project-root/app/fixtures/ModelOne.yaml
 
 # blog_bundle
-project-root/bundles/blog/
-project-root/bundles/blog/Post.yaml
+project-root/bundles/blog/fixtures/
+project-root/bundles/blog/fixtures/Post.yaml
 
 # security_bundle
-project-root/bundles/security/
-project-root/bundles/security/User.yaml
-project-root/bundles/security/Role.yaml
+project-root/bundles/security/fixtures/
+project-root/bundles/security/fixtures/User.yaml
+project-root/bundles/security/fixtures/Role.yaml
 ```
 
 ```python
@@ -249,6 +312,7 @@ BUNDLES = [
     'flask_unchained.bundles.sqlalchemy',
     'py_yaml_fixtures',
 
+    'bundles.blog',
     'bundles.security',
     'app',
 ]
