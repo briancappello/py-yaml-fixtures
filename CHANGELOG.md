@@ -1,8 +1,8 @@
 # CHANGELOG
 
-## v0.5.0 (unreleased)
+## v0.5.0 (2019/09/17)
 
-- fix bugs and add tests for `date_factory` and `datetime_factory` functions
+- fix bugs in `date_factory` and `datetime_factory` functions, add tests
 - support loading multiple models from individual files named `fixtures.yml` or `fixtures.yaml`
 - fix bugs with loading fixtures using stock SQLAlchemy
 
