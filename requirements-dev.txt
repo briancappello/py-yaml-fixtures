@@ -2,6 +2,7 @@
 
 django>=2.1
 flask>=1.0
+flask-unchained>=0.8.0
 m2r
 pytest
 pytest-django

@@ -15,6 +15,7 @@ class ModelFixtureFoldersHook(AppFactoryHook):
 
     bundle_module_name = 'fixtures'
     bundle_override_module_name_attr = 'fixtures_folder_name'
+    require_exactly_one_bundle_module = True
     name = 'model_fixture_folders'
     run_after = ['models']
     run_before = ['init_extensions']
@@ -32,10 +33,10 @@ class ModelFixtureFoldersHook(AppFactoryHook):
 
         bundle_dir = None
         for filename in MULTI_CLASS_FILENAMES:
-            if os.path.exists(os.path.join(bundle.folder, filename)):
-                bundle_dir = bundle.folder
+            if os.path.exists(os.path.join(bundle.root_path, filename)):
+                bundle_dir = bundle.root_path
 
-        fixtures_dir = os.path.join(bundle.folder, folder_name)
+        fixtures_dir = os.path.join(bundle.root_path, folder_name)
         if not os.path.exists(fixtures_dir):
             fixtures_dir = None
 

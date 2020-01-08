@@ -59,7 +59,7 @@ setup(
         ],
         'flask-unchained': [
             'flask-migrate>=2.2.1',
-            'flask-unchained>=0.7.9',
+            'flask-unchained>=0.8.0',
             'flask-sqlalchemy-unchained>=0.7.3',
             'sqlalchemy-unchained>=0.7.6',
         ],
