@@ -1,14 +1,15 @@
-import datetime as dt
-import functools
-
-from sqlalchemy import orm as sa_orm
-from sqlalchemy.ext.associationproxy import AssociationProxy
+from collections import defaultdict
+from datetime import date, datetime
+from functools import lru_cache
 from types import FunctionType
 from typing import *
 
-from . import FactoryInterface
-from .. import utils
+from sqlalchemy import orm as sa_orm
+from sqlalchemy.ext.associationproxy import AssociationProxy
+
 from ..types import Identifier
+from .. import utils
+from . import FactoryInterface
 
 
 class SQLAlchemyModelFactory(FactoryInterface):
@@ -32,7 +33,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
         self.session = session
         self.models = (models if isinstance(models, dict)
                        else {model.__name__: model for model in models})
-        self.model_instances = {}
+        self.model_instances = defaultdict(dict)
         self.datetime_factory = datetime_factory or utils.datetime_factory
         self.date_factory = date_factory or utils.date_factory
 
@@ -48,12 +49,12 @@ class SQLAlchemyModelFactory(FactoryInterface):
                 setattr(instance, attr, value)
 
         self.session.add(instance)
-        self.model_instances[identifier.key] = instance
+        self.model_instances[identifier.class_name][identifier.key] = instance
         return instance, created
 
     def _get_existing(self, identifier: Identifier, data: Dict[str, Any]):
         model_class = self.models[identifier.class_name]
-        instance = self.model_instances.get(identifier.key)
+        instance = self.model_instances[identifier.class_name].get(identifier.key)
         if isinstance(instance, model_class) and instance in self.session:
             return instance
 
@@ -74,7 +75,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
         with self.session.no_autoflush:
             return self.session.query(model_class).filter_by(**filter_kwargs).one_or_none()
 
-    @functools.lru_cache()
+    @lru_cache()
     def get_relationships(self, class_name: str) -> Set[str]:
         rv = set()
         model_class = self.models[class_name]
@@ -101,9 +102,9 @@ class SQLAlchemyModelFactory(FactoryInterface):
                 rv[col_name] = self.loader.convert_identifiers(value)
             elif not hasattr(col, 'type'):
                 continue
-            elif col.type.python_type == dt.date:
+            elif col.type.python_type == date:
                 rv[col_name] = self.date_factory(value)
-            elif col.type.python_type == dt.datetime:
+            elif col.type.python_type == datetime:
                 rv[col_name] = self.datetime_factory(value)
         return rv
 

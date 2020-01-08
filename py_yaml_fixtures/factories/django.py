@@ -1,3 +1,4 @@
+from collections import defaultdict
 from types import FunctionType
 from typing import *
 
@@ -19,7 +20,7 @@ class DjangoModelFactory(FactoryInterface):
         super().__init__()
         self.models = (models if isinstance(models, dict)
                        else {model.__name__: model for model in models})
-        self.model_instances = {}
+        self.model_instances = defaultdict(dict)
         self.datetime_factory = datetime_factory or utils.datetime_factory
         self.date_factory = date_factory or utils.date_factory
 
@@ -35,8 +36,8 @@ class DjangoModelFactory(FactoryInterface):
                          identifier: Identifier,
                          data: Dict[str, Any],
                          ):
-        if identifier.key in self.model_instances:
-            return self.model_instances[identifier.key], False
+        if self.model_instances[identifier.class_name].get(identifier.key):
+            return self.model_instances[identifier.class_name][identifier.key], False
 
         kwargs, defaults, m2m = {}, {}, {}
         model_class = self.models[identifier.class_name]
@@ -61,12 +62,12 @@ class DjangoModelFactory(FactoryInterface):
         else:
             instance, created = model_class.objects.update_or_create(**kwargs,
                                                                      defaults=defaults)
-        self.model_instances[identifier.key] = instance
 
         for k, v in m2m.items():
             for obj in v:
                 getattr(instance, k).add(obj)
 
+        self.model_instances[identifier.class_name][identifier.key] = instance
         return instance, created
 
     def get_relationships(self, class_name: str):
