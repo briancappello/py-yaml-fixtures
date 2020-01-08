@@ -50,7 +50,8 @@ class FixturesLoader:
         self.model_fixtures = defaultdict(dict)
         """A dict of models names to their semi-processed data from the yaml files."""
 
-        self._cache = {}
+        self._file_cache = {}
+        self._data_cache = defaultdict(dict)
         self._loaded = False
 
     def create_all(self, progress_callback: Optional[callable] = None) -> Dict[str, object]:
@@ -87,7 +88,7 @@ class FixturesLoader:
             for identifier_key, data in self.model_fixtures[model_class_name].items():
                 identifier = Identifier(model_class_name, identifier_key)
                 data = self.factory.maybe_convert_values(identifier, data)
-                self._cache[identifier_key] = data
+                self._data_cache[model_class_name][identifier_key] = data
 
                 model_instance, created = self.factory.create_or_update(identifier, data)
                 if progress_callback:
@@ -106,7 +107,7 @@ class FixturesLoader:
             return identifiers
 
         def _create_or_update(identifier):
-            data = self._cache[identifier.key]
+            data = self._data_cache[identifier.class_name][identifier.key]
             return self.factory.create_or_update(identifier, data)[0]
 
         if isinstance(identifiers, Identifier):
@@ -135,7 +136,7 @@ class FixturesLoader:
                 if os.path.isfile(filepath) and file_ext in {'yml', 'yaml'}:
                     filepaths.append(filepath)
                     with open(filepath) as f:
-                        self._cache[filepath] = f.read()
+                        self._file_cache[filepath] = f.read()
 
                     # preload to determine identifier keys
                     with self._preloading_env() as env:
@@ -221,15 +222,16 @@ class FixturesLoader:
         if not env:
             env = jinja2.Environment()
         if not env.loader:
-            env.loader = jinja2.FunctionLoader(lambda filepath: self._cache[filepath])
+            env.loader = jinja2.FunctionLoader(lambda path: self._file_cache[path])
+
         if 'faker' not in env.globals:
             faker = Faker()
             faker.seed(1234)
             env.globals['faker'] = faker
-        if 'random_model' not in env.globals:
-            env.globals['random_model'] = jinja2.contextfunction(random_model)
-        if 'random_models' not in env.globals:
-            env.globals['random_models'] = jinja2.contextfunction(random_models)
+
+        env.globals.setdefault('random_model', jinja2.contextfunction(random_model))
+        env.globals.setdefault('random_models', jinja2.contextfunction(random_models))
+
         return env
 
     @contextlib.contextmanager
