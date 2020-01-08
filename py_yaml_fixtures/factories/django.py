@@ -1,10 +1,11 @@
-from django.db import models as db
 from types import FunctionType
 from typing import *
 
-from . import FactoryInterface
-from .. import utils
+from django.db import models as db
+
 from ..types import Identifier
+from .. import utils
+from . import FactoryInterface
 
 
 class DjangoModelFactory(FactoryInterface):
@@ -37,24 +38,35 @@ class DjangoModelFactory(FactoryInterface):
         if identifier.key in self.model_instances:
             return self.model_instances[identifier.key], False
 
-        kwargs, defaults = {}, {}
+        kwargs, defaults, m2m = {}, {}, {}
         model_class = self.models[identifier.class_name]
         for k, v in data.items():
             if not hasattr(model_class, k):
                 defaults[k] = v
                 continue
+
             field = model_class._meta.get_field(k)
+
+            if isinstance(field, (db.ManyToManyField, db.ManyToManyRel)):
+                m2m[k] = v
+                continue
+
             if field.primary_key or field.unique:
                 kwargs[k] = v
             else:
                 defaults[k] = v
 
         if not kwargs:
-            instance, created = model_class.objects.update_or_create(**data)
+            instance, created = model_class.objects.update_or_create(**defaults)
         else:
             instance, created = model_class.objects.update_or_create(**kwargs,
                                                                      defaults=defaults)
         self.model_instances[identifier.key] = instance
+
+        for k, v in m2m.items():
+            for obj in v:
+                getattr(instance, k).add(obj)
+
         return instance, created
 
     def get_relationships(self, class_name: str):

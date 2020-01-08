@@ -1,0 +1,58 @@
+User:
+  grace:
+    username: grace
+    first_name: Grace
+    email: grace@example.com
+    password: {{ hash_password('python can do so much better than django') }}
+
+  judy:
+    username: judy
+    first_name: Judy
+    email: judy@example.com
+    password: {{ hash_password('too many crap apis and much technical debt') }}
+
+
+Category:
+  food:
+    name: Food
+
+  vacation:
+    name: Vacation
+
+
+Tag:
+  italian:
+    name: Italian
+  mexican:
+    name: Mexican
+  chinese:
+    name: Chinese
+
+  sea:
+    name: South East Asia
+  usa:
+    name: United States of America
+  ca:
+    name: Canada
+
+
+Article:
+  one:
+    title: Pasta in Canada
+    author: User(grace)
+    category: Category(food)
+    tags: Tag(italian, ca)
+
+  two:
+    title: Chinese in SEA
+    author: User(grace)
+    category: Category(food)
+    tags:
+      - Tag(chinese)
+      - Tag(sea)
+
+  three:
+    title: Vacation in America
+    author: User(judy)
+    category: Category(vacation)
+    tags: [Tag(usa), Tag(mexican)]

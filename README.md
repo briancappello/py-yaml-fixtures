@@ -215,25 +215,6 @@ pip install py-yaml-fixtures[sqlalchemy]
 
 Add `py_yaml_fixtures` to your `settings.INSTALLED_APPS`.
 
-The `py_yaml_fixtures` app adds one command: `manage.py import_fixtures`. It looks for fixture files in every app configured in your `settings.INSTALLED_APPS` that has a `fixtures` folder. For example:
-
-```bash
-# example folder structure:
-
-# app
-project-root/app/fixtures/
-project-root/app/fixtures/ModelOne.yaml
-
-# blog
-project-root/blog/fixtures/
-project-root/blog/fixtures/ModelTwo.yaml
-
-# auth
-project-root/auth/fixtures/
-project-root/auth/fixtures/ModelThree.yaml
-project-root/auth/fixtures/ModelFour.yaml
-```
-
 ```python
 # project-root/app/settings.py
 
@@ -245,6 +226,23 @@ INSTALLED_APPS = [
    'blog',
    'app',
 ]
+```
+
+The `py_yaml_fixtures` app adds one command: `manage.py import_fixtures`. It looks for fixture files in every app configured in your `settings.INSTALLED_APPS` that has a `fixtures` folder. So in this example:
+
+```bash
+# app
+project-root/app/fixtures/
+project-root/app/fixtures/ContactSubmission.yaml
+
+# blog
+project-root/blog/fixtures/
+project-root/blog/fixtures/Article.yaml
+
+# auth
+project-root/auth/fixtures/
+project-root/auth/fixtures/User.yaml
+project-root/auth/fixtures/Group.yaml
 ```
 
 To load the model fixtures into the database, you would run:
