@@ -8,6 +8,11 @@ from collections import defaultdict
 from faker import Faker
 from typing import *
 
+try:
+    from django.contrib.auth.hashers import make_password as hash_password
+except ImportError:
+    hash_password = lambda x: x
+
 from .factories import FactoryInterface
 from .types import Identifier
 from .utils import normalize_identifiers, random_model, random_models
@@ -229,6 +234,7 @@ class FixturesLoader:
             faker.seed(1234)
             env.globals['faker'] = faker
 
+        env.globals.setdefault('hash_password', hash_password)
         env.globals.setdefault('random_model', jinja2.contextfunction(random_model))
         env.globals.setdefault('random_models', jinja2.contextfunction(random_models))
 
