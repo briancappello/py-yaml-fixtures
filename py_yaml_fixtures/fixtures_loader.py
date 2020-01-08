@@ -231,7 +231,7 @@ class FixturesLoader:
 
         if 'faker' not in env.globals:
             faker = Faker()
-            faker.seed(1234)
+            faker.seed_instance(1234)
             env.globals['faker'] = faker
 
         env.globals.setdefault('hash_password', hash_password)
