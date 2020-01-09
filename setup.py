@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 with open('README.md', encoding='utf-8') as f:
@@ -25,7 +25,7 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
-    packages=['py_yaml_fixtures'],
+    packages=find_packages(exclude=['django_test_app', 'docs', 'tests']),
     install_requires=[
         'faker>=1.0.7',
         'jinja2>=2.10.1',
