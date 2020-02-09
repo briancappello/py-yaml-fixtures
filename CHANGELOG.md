@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v0.6.0 (unreleased)
+
+- support Flask Unchained v0.8
+- support Faker v3
+- let factories support duplicate identifiers across model classes
+- add `django.contrib.auth.hashers.make_password` as `hash_password` to jinja env
+- add basic integration test for django
+- add support for datetime.timedelta to SQLAlchemyModelFactory
+
 ## v0.5.0 (2019/09/17)
 
 - fix bugs in `date_factory` and `datetime_factory` functions, add tests
