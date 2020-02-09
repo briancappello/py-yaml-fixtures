@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## v0.6.0 (unreleased)
+## v0.6.0 (2020/02/09)
 
 - support Flask Unchained v0.8
 - support Faker v3
