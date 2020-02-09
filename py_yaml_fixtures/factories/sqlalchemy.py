@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from functools import lru_cache
 from types import FunctionType
 from typing import *
@@ -106,6 +106,9 @@ class SQLAlchemyModelFactory(FactoryInterface):
                 rv[col_name] = self.date_factory(value)
             elif col.type.python_type == datetime:
                 rv[col_name] = self.datetime_factory(value)
+            elif col.type.python_type == timedelta:
+                duration, unit = value.split(" ")
+                rv[col_name] = timedelta(**{unit: float(duration)})
         return rv
 
     def commit(self):
