@@ -53,6 +53,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
         return instance, created
 
     def _get_existing(self, identifier: Identifier, data: Dict[str, Any]):
+
         model_class = self.models[identifier.class_name]
         instance = self.model_instances[identifier.class_name].get(identifier.key)
         if isinstance(instance, model_class) and instance in self.session:
@@ -68,7 +69,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
         if not filter_kwargs:
             filter_kwargs = {k: v for k, v in data.items()
                              if v is None
-                             or isinstance(v, (bool, int, str, float))}
+                             or isinstance(v, (bool, int, str, float, datetime))}
         if not filter_kwargs:
             return None
 
