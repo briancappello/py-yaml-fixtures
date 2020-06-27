@@ -68,7 +68,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
         if not filter_kwargs:
             filter_kwargs = {k: v for k, v in data.items()
                              if v is None
-                             or isinstance(v, (bool, int, str, float))}
+                             or isinstance(v, (bool, int, str, float, datetime))}
         if not filter_kwargs:
             return None
 
