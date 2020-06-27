@@ -53,7 +53,6 @@ class SQLAlchemyModelFactory(FactoryInterface):
         return instance, created
 
     def _get_existing(self, identifier: Identifier, data: Dict[str, Any]):
-
         model_class = self.models[identifier.class_name]
         instance = self.model_instances[identifier.class_name].get(identifier.key)
         if isinstance(instance, model_class) and instance in self.session:
