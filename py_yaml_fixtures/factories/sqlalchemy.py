@@ -54,6 +54,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
 
     def _get_existing(self, identifier: Identifier, data: Dict[str, Any]):
         model_class = self.models[identifier.class_name]
+        relationships = self.get_relationships(identifier.class_name)
         instance = self.model_instances[identifier.class_name].get(identifier.key)
         if isinstance(instance, model_class) and instance in self.session:
             return instance
@@ -68,12 +69,15 @@ class SQLAlchemyModelFactory(FactoryInterface):
         if not filter_kwargs:
             filter_kwargs = {k: v for k, v in data.items()
                              if v is None
-                             or isinstance(v, (bool, int, str, float, datetime))}
+                             or isinstance(v, (bool, int, str, float, date, datetime))
+                             or k in relationships}
         if not filter_kwargs:
             return None
 
         with self.session.no_autoflush:
-            return self.session.query(model_class).filter_by(**filter_kwargs).one_or_none()
+            return self.session.query(model_class).filter(
+                *[getattr(model_class, k) == v for k, v in filter_kwargs.items()]
+            ).one_or_none()
 
     @lru_cache()
     def get_relationships(self, class_name: str) -> Set[str]:
