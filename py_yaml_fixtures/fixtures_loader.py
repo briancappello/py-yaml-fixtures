@@ -83,9 +83,9 @@ class FixturesLoader:
         try:
             creation_order = reversed(list(nx.topological_sort(dag)))
         except nx.NetworkXUnfeasible:
-            raise Exception('Circular dependency detected between models: '
-                            ', '.join(['{a} -> {b}'.format(a=a, b=b)
-                                       for a, b in nx.find_cycle(dag)]))
+            raise Exception('Circular dependency detected between models: ' +
+                            ', '.join('{a} -> {b}'.format(a=a, b=b)
+                                      for a, b in nx.find_cycle(dag)))
 
         # create or update the models in the determined order
         rv = {}
@@ -199,7 +199,7 @@ class FixturesLoader:
         rv = {}
         relationships = set()
         if not fixture_data:
-            return rv, relationships
+            return rv, []
 
         for identifier_id, data in fixture_data.items():
             new_data = {}
