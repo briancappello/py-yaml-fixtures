@@ -1,0 +1,24 @@
+Parent:
+  alice:
+    name: Alice
+    children:
+      - Child(grace)
+      - Child(judy)
+
+  bob:
+    name: Bob
+    children: Child(carol, eve)
+
+
+Child:
+  carol:
+    name: Carol
+
+  eve:
+    name: Eve
+
+  grace:
+    name: Grace
+
+  judy:
+    name: Judy

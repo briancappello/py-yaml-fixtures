@@ -2,11 +2,10 @@
 
 django>=2.1
 flask>=1.0
-flask-unchained>=0.8.0
+flask-unchained[sqlalchemy]>=0.8.0
 m2r
 pytest
 pytest-django
 sphinx
-sphinx-autobuild
 sphinx-rtd-theme
 sqlalchemy>=1.2
