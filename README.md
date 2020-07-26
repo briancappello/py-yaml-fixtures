@@ -25,11 +25,15 @@ pip install py-yaml-fixtures
    * [Relationships](https://github.com/briancappello/py-yaml-fixtures#relationships)
 * [Faker and Jinja Templating](https://github.com/briancappello/py-yaml-fixtures#faker-and-jinja-templating)
 * [Installation](https://github.com/briancappello/py-yaml-fixtures#installation)
-   * [Configuration](https://github.com/briancappello/py-yaml-fixtures#configuration)
+   * [Configuration and Usage](https://github.com/briancappello/py-yaml-fixtures#configuration-and-usage)
       * [With Django](https://github.com/briancappello/py-yaml-fixtures#with-django)
       * [With Flask and Flask-SQLAlchemy](https://github.com/briancappello/py-yaml-fixtures#with-flask-and-flask-sqlalchemy)
       * [With Flask Unchained](https://github.com/briancappello/py-yaml-fixtures#with-flask-unchained)
       * [With Standalone SQLAlchemy](https://github.com/briancappello/py-yaml-fixtures#with-standalone-sqlalchemy)
+* [Known Limitations](https://github.com/briancappello/py-yaml-fixtures#known-limitations)
+   * [One to Many Relationships](https://github.com/briancappello/py-yaml-fixtures#one-to-many-relationships)
+   * [Many to Many Relationships](https://github.com/briancappello/py-yaml-fixtures#many-to-many-relationships)
+   * [Association Proxies](https://github.com/briancappello/py-yaml-fixtures#association-proxies)
 * [Contributing](https://github.com/briancappello/py-yaml-fixtures#contributing)
    * [Adding support for other ORMs](https://github.com/briancappello/py-yaml-fixtures#adding-support-for-other-orms)
 * [License](https://github.com/briancappello/py-yaml-fixtures#license)
@@ -204,7 +208,7 @@ pip install py-yaml-fixtures[flask-unchained]
 pip install py-yaml-fixtures[sqlalchemy]
 ```
 
-### Configuration
+### Configuration and Usage
 
 * [With Django](https://github.com/briancappello/py-yaml-fixtures#with-django)
 * [With Flask and Flask-SQLAlchemy](https://github.com/briancappello/py-yaml-fixtures#with-flask-and-flask-sqlalchemy)
@@ -384,6 +388,99 @@ if __name__ == '__main__':
             model=repr(model)
         )))
 ```
+
+## Known Limitations
+
+### One to Many Relationships
+
+It is not possible to "mix" declarations on both sides of a relationship, eg this doesn't work:
+
+```yaml
+Parent:
+  alice:
+    name: Alice
+    children:
+      - Child(grace)
+
+  bob:
+    name: Bob
+
+Child:
+  grace:
+    name: Grace
+
+  judy:
+    name: Judy
+    parent: Parent(bob)
+```
+
+The above example will raise a circular dependency exception. You can either declare all children on `Parent` models, *or* declare all parents on `Child` models, **but not both**.
+
+### Many to Many Relationships
+
+Let's say we have a many-to-many relationship between the `Article` and `Tag` models:
+
+```python
+class ArticleTag(db.Model):
+    """Join table between Article and Tag"""
+    article_id = db.foreign_key('Article', primary_key=True)
+    article = db.relationship('Article', back_populates='article_tags')
+
+    tag_id = db.foreign_key('Tag', primary_key=True)
+    tag = db.relationship('Tag', back_populates='tag_articles')
+
+class Article(db.Model):
+    title = db.Column(db.String)
+
+    article_tags = db.relationship('ArticleTag', back_populates='article')
+    tags = db.association_proxy('article_tags', 'tag')
+
+class Tag(db.Model):
+    name = db.Column(db.String)
+
+    tag_articles = db.relationship('ArticleTag', back_populates='tag')
+    articles = db.association_proxy('tag_articles', 'article')
+```
+
+The relationships must be specified on the join table model `ArticleTag`:
+
+```yaml
+Article:
+  hello_world:
+    title: Hello World
+
+  metaprogramming:
+    title: Metaprogramming
+
+Tag:
+  coding:
+    name: Coding
+
+  beginner:
+    name: Beginner
+
+  advanced:
+    name: Advanced
+
+ArticleTag:
+  at1:
+    article: Article(hello_world)
+    tag: Tag(coding)
+  at2:
+    article: Article(hello_world)
+    tag: Tag(beginner)
+
+  at3:
+    article: Article(metaprogramming)
+    tag: Tag(coding)
+  at4:
+    article: Article(metaprogramming)
+    tag: Tag(advanced)
+```
+
+### Association Proxies
+
+As of this writing, specifying values directly on association proxy columns is *not* supported.
 
 ## Contributing
 
