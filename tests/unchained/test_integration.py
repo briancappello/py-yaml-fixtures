@@ -4,7 +4,7 @@ from py_yaml_fixtures.commands import import_fixtures
 def test_flask_unchained_integration(cli_runner):
     from unchained_test_app.models import Parent, Child
 
-    r = cli_runner.invoke(import_fixtures)
+    r = cli_runner.invoke(import_fixtures, catch_exceptions=False)
     assert r.exit_code == 0, r.output
 
     parents = Parent.query.all()
