@@ -54,6 +54,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
 
     def _get_existing(self, identifier: Identifier, data: Dict[str, Any]):
         model_class = self.models[identifier.class_name]
+        relationships = self.get_relationships(identifier.class_name)
         instance = self.model_instances[identifier.class_name].get(identifier.key)
         if isinstance(instance, model_class) and instance in self.session:
             return instance
@@ -64,16 +65,27 @@ class SQLAlchemyModelFactory(FactoryInterface):
             if col.name in data and (col.primary_key or col.unique):
                 filter_kwargs[col.name] = data[col.name]
 
-        # otherwise fallback to filtering by simple types
+        # otherwise fallback to filtering by values
         if not filter_kwargs:
             filter_kwargs = {k: v for k, v in data.items()
-                             if v is None
-                             or isinstance(v, (bool, int, str, float, datetime))}
+                             if (k in relationships and hasattr(v, '__mapper__'))
+                             or v is None
+                             or isinstance(v, (bool, int, str, float, date, datetime))}
         if not filter_kwargs:
             return None
 
+        filter_expressions = []
+        for k, v in filter_kwargs.items():
+            filter_expressions.append(getattr(model_class, k) == v)
+
+            if k in relationships:
+                for pk in v.__mapper__.primary_key:
+                    pk_value = getattr(v, pk.name)
+                    if pk_value is None:
+                        return None
+
         with self.session.no_autoflush:
-            return self.session.query(model_class).filter_by(**filter_kwargs).one_or_none()
+            return self.session.query(model_class).filter(*filter_expressions).one_or_none()
 
     @lru_cache()
     def get_relationships(self, class_name: str) -> Set[str]:

@@ -1,0 +1,8 @@
+Parent:
+  p1:
+    name: First Parent
+
+Child:
+  c1:
+    name: First Child
+    parent: Parent(p1)
