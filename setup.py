@@ -7,7 +7,7 @@ with open('README.md', encoding='utf-8') as f:
 
 setup(
     name='Py-YAML-Fixtures',
-    version='0.6.0',
+    version='0.6.1',
     description='Load Django and SQLAlchemy database fixtures '
                 'from Jinja-templated YAML files',
     long_description=long_description,
@@ -25,7 +25,12 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
-    packages=find_packages(exclude=['django_test_app', 'docs', 'tests']),
+    packages=find_packages(exclude=[
+        'django_test_app',
+        'docs',
+        'tests',
+        'unchained_test_app',
+    ]),
     install_requires=[
         'faker>=1.0.7',
         'jinja2>=2.10.1',

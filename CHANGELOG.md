@@ -1,10 +1,12 @@
 # CHANGELOG
 
-## v0.6.1 (unreleased)
+## v0.6.1 (2020/07/26)
 
-- fix filtering for existing models on the singular side of a o2m relationship in the SQLAlchemy factory
+- support filtering for existing models by date/datetime in the SQLAlchemy factory (thanks to @westonplatter)
+- fix filtering for existing models on the singular side of a o2m relationship in the SQLAlchemy factory (thanks to @westonplatter)
 - add tests for usage with standalone SQLAlchemy
 - add integration tests for usage with Flask Unchained
+- document known limitations
 
 ## v0.6.0 (2020/02/09)
 
