@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v0.6.1 (unreleased)
+
+- fix filtering for existing models on the singular side of a o2m relationship in the SQLAlchemy factory
+- add tests for usage with standalone SQLAlchemy
+- add integration tests for usage with Flask Unchained
+
 ## v0.6.0 (2020/02/09)
 
 - support Flask Unchained v0.8
