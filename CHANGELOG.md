@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.6.2 (unreleased)
+
+- when using Flask Unchained, support loading from the root "db" and/or "db/fixtures" directories 
+
 ## v0.6.1 (2020/07/26)
 
 - support filtering for existing models by date/datetime in the SQLAlchemy factory (thanks to @westonplatter)

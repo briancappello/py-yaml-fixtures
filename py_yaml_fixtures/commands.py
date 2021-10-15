@@ -1,5 +1,7 @@
 # this file adds the `flask db import-fixtures` command for Flask Unchained
 
+import os
+
 from flask_unchained import unchained
 from flask_unchained.cli import click, with_appcontext
 from flask_unchained.bundles.sqlalchemy import SQLAlchemyUnchained
@@ -18,6 +20,13 @@ db_ext: SQLAlchemyUnchained = unchained.get_local_proxy('db')
 @with_appcontext
 def import_fixtures(bundles=None):
     fixture_dirs = []
+    for path in ['db', 'db.fixtures']:
+        root = unchained._app.root_path
+        path = path.replace('.', os.sep)
+        full_path = os.path.join(root, path)
+        if os.path.exists(full_path) and os.path.isdir(full_path):
+            fixture_dirs.append(path)
+
     for bundle_name in (bundles or unchained.bundles.keys()):
         bundle = unchained.bundles[bundle_name]
         dirs = ModelFixtureFoldersHook.get_fixtures_dirs(bundle)
