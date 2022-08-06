@@ -235,8 +235,12 @@ class FixturesLoader:
             env.globals['faker'] = faker
 
         env.globals.setdefault('hash_password', hash_password)
-        env.globals.setdefault('random_model', jinja2.contextfunction(random_model))
-        env.globals.setdefault('random_models', jinja2.contextfunction(random_models))
+        if hasattr(jinja2, 'pass_context'):
+            env.globals.setdefault('random_model', jinja2.pass_context(random_model))
+            env.globals.setdefault('random_models', jinja2.pass_context(random_models))
+        else:  # BC for jinja2 <3.x
+            env.globals.setdefault('random_model', jinja2.contextfunction(random_model))
+            env.globals.setdefault('random_models', jinja2.contextfunction(random_models))
 
         return env
 
@@ -251,5 +255,9 @@ class FixturesLoader:
             ctx['random_models'] = lambda *a, **kw: None
             yield self.env
         finally:
-            ctx['random_model'] = jinja2.contextfunction(random_model)
-            ctx['random_models'] = jinja2.contextfunction(random_models)
+            if hasattr(jinja2, 'pass_context'):
+                ctx['random_model'] = jinja2.pass_context(random_model)
+                ctx['random_models'] = jinja2.pass_context(random_models)
+            else:
+                ctx['random_model'] = jinja2.contextfunction(random_model)
+                ctx['random_models'] = jinja2.contextfunction(random_models)
