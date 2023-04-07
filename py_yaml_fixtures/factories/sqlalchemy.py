@@ -93,7 +93,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
         model_class = self.models[class_name]
         for col_name, value in model_class.__mapper__.all_orm_descriptors.items():
             # FIXME: this is apparently needed to make value.impl accessible?
-            getattr(value, 'info', None)
+            getattr(value, 'property', None)
 
             if (isinstance(value, AssociationProxy)
                     or (getattr(value, 'impl', None) is not None
