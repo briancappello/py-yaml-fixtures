@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from functools import lru_cache
 from types import FunctionType
 from typing import *
@@ -70,7 +70,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
             filter_kwargs = {k: v for k, v in data.items()
                              if (k in relationships and hasattr(v, '__mapper__'))
                              or v is None
-                             or isinstance(v, (bool, int, str, float, date, datetime))}
+                             or isinstance(v, (bool, int, str, float))}
         if not filter_kwargs:
             return None
 
@@ -116,6 +116,8 @@ class SQLAlchemyModelFactory(FactoryInterface):
                 continue
             elif col.type.python_type == date:
                 rv[col_name] = self.date_factory(value)
+            elif col.type.python_type == time:
+                rv[col_name] = time(*[int(x) for x in value.split(':')])
             elif col.type.python_type == datetime:
                 rv[col_name] = self.datetime_factory(value)
             elif col.type.python_type == timedelta:

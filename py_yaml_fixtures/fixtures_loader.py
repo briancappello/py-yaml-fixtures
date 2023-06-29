@@ -148,7 +148,7 @@ class FixturesLoader:
                         rendered_yaml = env.get_template(filepath).render()
                         data = yaml.load(rendered_yaml, Loader=yaml.FullLoader)
                         if data:
-                            if filename in MULTI_CLASS_FILENAMES:
+                            if filename.islower():
                                 for class_name in data:
                                     model_identifiers[class_name] = list(
                                         data[class_name].keys())
@@ -173,7 +173,7 @@ class FixturesLoader:
 
         identifier_data = {}
         filename = os.path.basename(filepath)
-        if filename in MULTI_CLASS_FILENAMES:
+        if filename.islower():
             for class_name in data:
                 d, self.relationships[class_name] = self._post_process_yaml_data(
                     data[class_name], self.factory.get_relationships(class_name))
