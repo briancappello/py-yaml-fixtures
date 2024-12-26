@@ -65,10 +65,10 @@ class FixturesLoader:
         Creates all the models discovered from fixture files in :attr:`fixtures_dir`.
 
         :param progress_callback: An optional function to track progress. It must take three
-                               parameters:
-                                - an :class:`Identifier`
-                                - the model instance
-                                - and a boolean specifying whether the model was created
+                                  parameters:
+                                    - an :class:`Identifier`
+                                    - the model instance
+                                    - and a boolean specifying whether the model was created
         :return: A dictionary keyed by identifier where the values are model instances.
         """
         if not self._loaded:
@@ -189,12 +189,16 @@ class FixturesLoader:
         if filename.islower():
             for class_name in data:
                 d, self.relationships[class_name] = self._post_process_yaml_data(
-                    data[class_name], self.factory.get_relationships(class_name))
+                    fixture_data=data[class_name],
+                    relationship_columns=self.factory.get_relationships(class_name),
+                )
                 identifier_data[class_name] = d
         else:
             class_name = filename[:filename.rfind('.')]
             d, self.relationships[class_name] = self._post_process_yaml_data(
-                data, self.factory.get_relationships(class_name))
+                fixture_data=data,
+                relationship_columns=self.factory.get_relationships(class_name),
+            )
             identifier_data[class_name] = d
 
         for class_name, d in identifier_data.items():

@@ -7,12 +7,12 @@ A (*work-in-progress*) library for loading database fixtures written in [Jinja2]
 - Flask Unchained
 - Standalone SQLAlchemy
 
-Requires **Python 3.5+**
+Requires **Python 3.10+**
 
 ## Useful Links
 
 * [Fork it on GitHub](https://github.com/briancappello/py-yaml-fixtures)
-* [Documentation](https://py-yaml-fixtures.readthedocs.io/en/latest/)
+* [Documentation](https://py-yaml-fixtures.readthedocs.io/en/latest/introduction.html)
 * [PyPI](https://pypi.org/project/Py-YAML-Fixtures/)
 
 ```bash
@@ -123,7 +123,7 @@ parent2:
 
 ### Relationships
 
-The top-level YAML keys (`alice`, `bob`, `grace`, `judy`, `parent1`, `parent2`) are unique ids used to reference objects in relationships. They must be unique across *all* model fixtures.
+The top-level YAML keys (`alice`, `bob`, `grace`, `judy`, `parent1`, `parent2`) are unique ids used to reference objects in relationships. They must be unique *within* a model class.
 
 To reference them, we use an *identifier string*. An identifier string consists of two parts: the class name, and one or more ids. For singular relationships the notation is `'ModelClassName(id)'`. For the many-side of relationships, the notation is the same, just combined with YAML's list syntax:
 
@@ -390,31 +390,6 @@ if __name__ == '__main__':
 ```
 
 ## Known Limitations
-
-### One to Many Relationships
-
-It is not possible to "mix" declarations on both sides of a relationship, eg this doesn't work:
-
-```yaml
-Parent:
-  alice:
-    name: Alice
-    children:
-      - Child(grace)
-
-  bob:
-    name: Bob
-
-Child:
-  grace:
-    name: Grace
-
-  judy:
-    name: Judy
-    parent: Parent(bob)
-```
-
-The above example will raise a circular dependency exception. You can either declare all children on `Parent` models, *or* declare all parents on `Child` models, **but not both**.
 
 ### Many to Many Relationships
 
