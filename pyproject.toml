@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "py-yaml-fixtures"
-version = "0.7.0"
+version = "0.7.0a0"
 description = "Load Django and SQLAlchemy database fixtures from Jinja2-templated YAML files"
 authors = ["Brian Cappello <briancappello@gmail.com>"]
 license = "MIT"
