@@ -50,7 +50,8 @@ class FixturesLoader:
         """A list of directories where fixture files should be loaded from."""
 
         self.relationships = {}
-        """A dict keyed by model name where values are a list of related model names."""
+        """A dict keyed by model name where values are dicts of related model names
+        to attribute names."""
 
         self.model_fixtures = defaultdict(dict)
         """A dict of models names to their semi-processed data from the yaml files."""
@@ -76,9 +77,20 @@ class FixturesLoader:
         # build up a directed acyclic graph to determine the model instantiation order
         dag = nx.DiGraph()
         for model_class_name, dependencies in self.relationships.items():
-            dag.add_node(model_class_name)
             for dep in dependencies:
-                dag.add_edge(model_class_name, dep)
+                associated_col_name = dependencies[dep]
+                for id_key, instance_data in self.model_fixtures[model_class_name].items():
+                    identifier = Identifier(model_class_name, id_key)
+                    dag.add_node(identifier)
+
+                    associated_identifiers = instance_data.get(associated_col_name)
+                    if associated_identifiers is None:
+                        continue
+                    elif isinstance(associated_identifiers, Identifier):
+                        associated_identifiers = [associated_identifiers]
+
+                    for associated_identifier in associated_identifiers:
+                        dag.add_edge(identifier, associated_identifier)
 
         try:
             creation_order = reversed(list(nx.topological_sort(dag)))
@@ -89,16 +101,17 @@ class FixturesLoader:
 
         # create or update the models in the determined order
         rv = {}
-        for model_class_name in creation_order:
-            for identifier_key, data in self.model_fixtures[model_class_name].items():
-                identifier = Identifier(model_class_name, identifier_key)
-                data = self.factory.maybe_convert_values(identifier, data)
-                self._data_cache[model_class_name][identifier_key] = data
+        for identifier in creation_order:
+            data = self.factory.maybe_convert_values(
+                identifier,
+                data=self.model_fixtures[identifier.class_name][identifier.key],
+            )
+            self._data_cache[identifier.class_name][identifier.key] = data
 
-                model_instance, created = self.factory.create_or_update(identifier, data)
-                if progress_callback:
-                    progress_callback(identifier, model_instance, created)
-                rv[identifier_key] = model_instance
+            model_instance, created = self.factory.create_or_update(identifier, data)
+            if progress_callback:
+                progress_callback(identifier, model_instance, created)
+            rv[identifier.class_name] = model_instance
 
         self.factory.commit()
         return rv
@@ -191,15 +204,15 @@ class FixturesLoader:
     def _post_process_yaml_data(self,
                                 fixture_data: Dict[str, Dict[str, Any]],
                                 relationship_columns: Set[str],
-                                ) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
+                                ) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]:
         """
         Convert and normalize identifier strings to Identifiers, as well as determine
         class relationships.
         """
         rv = {}
-        relationships = set()
+        relationships = {}
         if not fixture_data:
-            return rv, []
+            return rv, {}
 
         for identifier_id, data in fixture_data.items():
             new_data = {}
@@ -210,7 +223,7 @@ class FixturesLoader:
 
                 identifiers = normalize_identifiers(value)
                 if identifiers:
-                    relationships.add(identifiers[0].class_name)
+                    relationships[identifiers[0].class_name] = col_name
 
                 if isinstance(value, str) and len(identifiers) <= 1:
                     new_data[col_name] = identifiers[0] if identifiers else None
@@ -218,7 +231,7 @@ class FixturesLoader:
                     new_data[col_name] = identifiers
 
             rv[identifier_id] = new_data
-        return rv, list(relationships)
+        return rv, relationships
 
     def _ensure_env(self, env: Union[jinja2.Environment, None]):
         """

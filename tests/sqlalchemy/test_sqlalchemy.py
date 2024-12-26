@@ -20,6 +20,7 @@ class Parent(BaseModel):
 
     id = sa.Column(sa.Integer, primary_key=True)
     name = sa.Column(sa.String)
+
     children = relationship('Child', back_populates='parent')
 
 
@@ -28,8 +29,26 @@ class Child(BaseModel):
 
     id = sa.Column(sa.Integer, primary_key=True)
     name = sa.Column(sa.String)
+
     parent_id = sa.Column(sa.Integer, sa.ForeignKey('parent.id'))
     parent = relationship('Parent', back_populates='children')
+
+    node_id = sa.Column(sa.Integer, sa.ForeignKey('node.id'))
+    node = relationship('Node', back_populates='children')
+
+
+class Node(BaseModel):
+    """self-referential tree"""
+    __tablename__ = 'node'
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    name = sa.Column(sa.String)
+
+    root_id = sa.Column(sa.Integer, sa.ForeignKey('node.id'), nullable=True)
+    root = relationship('Node', back_populates='branches', remote_side=[id])
+    branches = relationship('Node', back_populates='root')
+
+    children = relationship('Child', back_populates='node')
 
 
 engine = create_engine('sqlite:///:memory:')
@@ -39,7 +58,7 @@ Session = sessionmaker()
 Session.configure(bind=engine)
 session = Session()
 
-factory = SQLAlchemyModelFactory(session, models=[Parent, Child])
+factory = SQLAlchemyModelFactory(session, models=[Parent, Child, Node])
 
 
 def test_sqlalchemy_create():
@@ -55,6 +74,10 @@ def test_sqlalchemy_create():
     child = session.query(Child).filter_by(name='First Child').one()
 
     assert parent.children == [child]
+
+    nodes = session.query(Node).all()
+    assert len(nodes) == 5
+    assert child.node.name == "Root"
 
 
 def test_sqlalchemy_update():

@@ -1,24 +1,30 @@
 Parent:
   alice:
+    id: 1
     name: Alice
     children:
       - Child(grace)
       - Child(judy)
 
   bob:
+    id: 2
     name: Bob
     children: Child(carol, eve)
 
 
 Child:
   carol:
+    id: 1
     name: Carol
 
   eve:
+    id: 2
     name: Eve
 
   grace:
+    id: 3
     name: Grace
 
   judy:
+    id: 4
     name: Judy
