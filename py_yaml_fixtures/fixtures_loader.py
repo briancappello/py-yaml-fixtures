@@ -65,10 +65,10 @@ class FixturesLoader:
         Creates all the models discovered from fixture files in :attr:`fixtures_dir`.
 
         :param progress_callback: An optional function to track progress. It must take three
-                                  parameters:
-                                    - an :class:`Identifier`
-                                    - the model instance
-                                    - and a boolean specifying whether the model was created
+            parameters:
+            - an :class:`Identifier`
+            - the model instance
+            - and a boolean specifying whether the model was created
         :return: A dictionary keyed by identifier where the values are model instances.
         """
         if not self._loaded:

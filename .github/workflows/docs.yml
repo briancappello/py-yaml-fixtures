@@ -1,6 +1,7 @@
 name: Documentation
+
 on:
-  pull_request_target:
+  pull_request:
     paths:
       - "docs/**"
     types:
@@ -8,17 +9,18 @@ on:
       - reopened
       - synchronize
       - closed # necessary to deactivate the version in Read the Docs
+
 permissions:
   pull-requests: write
   checks: write
+
 jobs:
-  staging:
+  pr-docs:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to the staging site
+      - name: Deploy docs to the staging site
         uses: KengoTODA/readthedocs-action@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           rtd-token: ${{ secrets.RTD_TOKEN }}
           rtd-project: py-yaml-fixtures
-

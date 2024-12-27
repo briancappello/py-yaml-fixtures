@@ -165,7 +165,7 @@ parent5:
 
 All of the YAML fixtures files are rendered by Jinja before getting loaded. This means you have full access to the Jinja environment, and can use things like `faker`, `range` and `random`:
 
-```jinja2
+```yaml+jinja
 # db/fixtures/Child.yaml
 
 {% for i in range(0, 20) %}
@@ -174,7 +174,7 @@ child{{ i }}:
 {% endfor %}
 ```
 
-```jinja2
+```yaml+jinja
 # db/fixtures/Parent.yaml
 
 {% for i in range(0, 10) %}
