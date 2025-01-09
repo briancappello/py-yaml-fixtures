@@ -60,7 +60,11 @@ class FixturesLoader:
         self._data_cache = defaultdict(dict)
         self._loaded = False
 
-    def create_all(self, progress_callback: Optional[callable] = None) -> Dict[str, object]:
+    def create_all(
+        self,
+        progress_callback: Optional[callable] = None,
+        jinja_context: dict | None = None,
+    ) -> list:
         """
         Creates all the models discovered from fixture files in :attr:`fixtures_dir`.
 
@@ -69,10 +73,11 @@ class FixturesLoader:
             - an :class:`Identifier`
             - the model instance
             - and a boolean specifying whether the model was created
+        :param jinja_context: Extra context variables for rendering jinja templates.
         :return: A dictionary keyed by identifier where the values are model instances.
         """
         if not self._loaded:
-            self._load_data()
+            self._load_data(jinja_context=jinja_context)
 
         # build up a directed acyclic graph to determine the model instantiation order
         dag = nx.DiGraph()
@@ -100,7 +105,7 @@ class FixturesLoader:
                                       for a, b in nx.find_cycle(dag)))
 
         # create or update the models in the determined order
-        rv = {}
+        rv = []
         for identifier in creation_order:
             data = self.factory.maybe_convert_values(
                 identifier,
@@ -111,7 +116,9 @@ class FixturesLoader:
             model_instance, created = self.factory.create_or_update(identifier, data)
             if progress_callback:
                 progress_callback(identifier, model_instance, created)
-            rv[identifier.class_name] = model_instance
+            rv.append(model_instance)
+
+        # FIXME if there are any model names in the seed files but not in creation_order
 
         self.factory.commit()
         return rv
@@ -135,10 +142,11 @@ class FixturesLoader:
         else:
             raise TypeError('`identifiers` must be an Identifier or list of Identifiers.')
 
-    def _load_data(self):
+    def _load_data(self, jinja_context: dict | None = None):
         """
         Load all fixtures from :attr:`fixtures_dir`
         """
+        jinja_context = jinja_context or {}
         filepaths = []
         model_identifiers = defaultdict(list)
 
@@ -158,7 +166,7 @@ class FixturesLoader:
 
                     # preload to determine identifier keys
                     with self._preloading_env() as env:
-                        rendered_yaml = env.get_template(filepath).render()
+                        rendered_yaml = env.get_template(filepath).render(**jinja_context)
                         data = yaml.load(rendered_yaml, Loader=yaml.FullLoader)
                         if data:
                             if filename.islower():
@@ -172,16 +180,28 @@ class FixturesLoader:
         # second pass where we can render the jinja templates with knowledge of all
         # the model identifier keys (allows random_model and random_models to work)
         for filepath in filepaths:
-            self._load_from_yaml(filepath, model_identifiers)
+            self._load_from_yaml(
+                filepath=filepath,
+                model_identifiers=model_identifiers,
+                jinja_context=jinja_context,
+            )
 
         self._loaded = True
 
-    def _load_from_yaml(self, filepath: str, model_identifiers: Dict[str, List[str]]):
+    def _load_from_yaml(
+        self,
+        filepath: str,
+        model_identifiers: Dict[str, List[str]],
+        jinja_context: dict | None = None,
+    ):
         """
-        Load fixtures from the given filename
+        Render YAML templates and parse raw fixtures data from the given filename.
         """
+        jinja_context = jinja_context or {}
         rendered_yaml = self.env.get_template(filepath).render(
-            model_identifiers=model_identifiers)
+            model_identifiers=model_identifiers,
+            **jinja_context,
+        )
         data = yaml.load(rendered_yaml, Loader=yaml.FullLoader)
 
         identifier_data = {}

@@ -29,6 +29,7 @@ class Child(BaseModel):
 
     id = sa.Column(sa.Integer, primary_key=True)
     name = sa.Column(sa.String)
+    description = sa.Column(sa.Text)
 
     parent_id = sa.Column(sa.Integer, sa.ForeignKey('parent.id'))
     parent = relationship('Parent', back_populates='children')
@@ -63,7 +64,9 @@ factory = SQLAlchemyModelFactory(session, models=[Parent, Child, Node])
 
 def test_sqlalchemy_create():
     loader = FixturesLoader(factory, fixture_dirs=[CREATE_MODELS_FIXTURES_DIR])
-    loader.create_all()
+    loader.create_all(jinja_context=dict(
+        child=dict(name="First Child")
+    ))
 
     parents = session.query(Parent).all()
     assert len(parents) == 1

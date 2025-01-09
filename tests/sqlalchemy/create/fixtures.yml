@@ -3,8 +3,9 @@ Parent:
     name: First Parent
 
 Child:
-  c1:
-    name: First Child
+  c1x:
+    name: {{ child.name }}
+    description: Description of {{ child.name }}
     parent: Parent(p1)
     node: Node(root)
 

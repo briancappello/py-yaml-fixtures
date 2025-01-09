@@ -5,6 +5,7 @@ from types import FunctionType
 from typing import *
 
 from sqlalchemy import orm as sa_orm
+from sqlalchemy.inspection import inspect
 from sqlalchemy.ext.associationproxy import AssociationProxy
 
 from ..types import Identifier
@@ -37,7 +38,11 @@ class SQLAlchemyModelFactory(FactoryInterface):
         self.datetime_factory = datetime_factory or utils.datetime_factory
         self.date_factory = date_factory or utils.date_factory
 
-    def create_or_update(self, identifier: Identifier, data: Dict[str, Any]):
+    def create_or_update(
+        self,
+        identifier: Identifier,
+        data: Dict[str, Any],
+    ):
         instance = self._get_existing(identifier, data)
         created = False
         if not instance:
@@ -126,4 +131,18 @@ class SQLAlchemyModelFactory(FactoryInterface):
         return rv
 
     def commit(self):
+        if 'postgresql' in self.session.bind.dialect.name:
+            for model in self.models.values():
+                if model.__name__ not in self.model_instances:
+                    continue
+
+                primary_keys = inspect(model).primary_key
+                if len(primary_keys) != 1 or primary_keys[0].type.python_type != int:
+                    continue
+
+                count = self.session.query(model).count() + 1
+                table = f'{model.__tablename__}_id_seq'
+                self.session.execute(
+                    f'ALTER SEQUENCE "{table}" RESTART WITH {count}'
+                )
         self.session.commit()
