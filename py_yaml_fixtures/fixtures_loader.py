@@ -39,15 +39,15 @@ class FixturesLoader:
                  factory: FactoryInterface,
                  fixture_dirs: List[str],
                  env: Optional[jinja2.Environment] = None):
-        self.env = self._ensure_env(env)
-        """The Jinja Environment used for rendering the yaml template files."""
-
         factory.loader = self
         self.factory = factory
         """The factory instance."""
 
         self.fixture_dirs = fixture_dirs
         """A list of directories where fixture files should be loaded from."""
+
+        self.env = self._ensure_env(env)
+        """The Jinja Environment used for rendering the yaml template files."""
 
         self.relationships = {}
         """A dict keyed by model name where values are dicts of related model names
@@ -222,6 +222,8 @@ class FixturesLoader:
             **jinja_context,
         )
         data = yaml.load(rendered_yaml, Loader=yaml.FullLoader)
+        if not data:
+            return
 
         identifier_data = {}
         filename = os.path.basename(filepath)
@@ -283,15 +285,32 @@ class FixturesLoader:
         if not env:
             env = jinja2.Environment()
         if not env.loader:
-            env.loader = jinja2.FunctionLoader(lambda path: self._file_cache[path])
+            def cache_loader(path):
+                try:
+                    return self._file_cache[path]
+                except KeyError:
+                    raise jinja2.exceptions.TemplateNotFound(path)
+
+            env.loader = jinja2.ChoiceLoader([
+                jinja2.FunctionLoader(cache_loader),
+            ] + [jinja2.FileSystemLoader(path) for path in self.fixture_dirs])
 
         if 'faker' not in env.globals:
             faker = Faker()
             faker.seed_instance(1234)
             env.globals['faker'] = faker
 
+        def merge(data: dict | None, defaults: dict):
+            data = data or {}
+            d = {**data}
+            for k, v in defaults.items():
+                if k not in d:
+                    d[k] = v
+            return d
+
         env.globals.setdefault('hash_password', hash_password)
         env.filters.setdefault('isoformat', lambda dt: dt.isoformat())
+        env.filters.setdefault('merge', merge)
         if hasattr(jinja2, 'pass_context'):
             env.globals.setdefault('random_model', jinja2.pass_context(random_model))
             env.globals.setdefault('random_models', jinja2.pass_context(random_models))
