@@ -1,10 +1,11 @@
 from collections import defaultdict
 from datetime import date, datetime, time, timedelta
+from enum import Enum
 from functools import lru_cache
 from types import FunctionType
 from typing import *
 
-from sqlalchemy import orm as sa_orm
+from sqlalchemy import orm as sa_orm, text
 from sqlalchemy.inspection import inspect
 from sqlalchemy.ext.associationproxy import AssociationProxy
 
@@ -114,24 +115,49 @@ class SQLAlchemyModelFactory(FactoryInterface):
         relationships = self.get_relationships(identifier.class_name)
         rv = data.copy()
         for col_name, value in data.items():
-            col = getattr(model_class, col_name)
+            try:
+                col = getattr(model_class, col_name)
+            except AttributeError:
+                raise AttributeError(f'Could not find column {col_name} on {model_class}')
+
             if col_name in relationships:
                 rv[col_name] = self.loader.convert_identifiers(value)
+                continue
             elif not hasattr(col, 'type'):
                 continue
-            elif col.type.python_type == date:
+
+            try:
+                py_type = col.type.python_type
+            except NotImplementedError:
+                # compatibility for sqlmodel AutoString
+                py_type = col.type.impl.python_type
+
+            if py_type == date:
                 rv[col_name] = self.date_factory(value)
-            elif col.type.python_type == time:
+            elif py_type == time:
                 rv[col_name] = time(*[int(x) for x in value.split(':')])
-            elif col.type.python_type == datetime:
+            elif py_type == datetime:
                 rv[col_name] = self.datetime_factory(value)
-            elif col.type.python_type == timedelta:
+            elif py_type == timedelta:
                 duration, unit = value.split(" ")
                 rv[col_name] = timedelta(**{unit: float(duration)})
+            elif isinstance(py_type, type) and issubclass(py_type, Enum):
+                try:
+                    value = py_type[value]
+                except KeyError:
+                    value = py_type(value)
+                rv[col_name] = value
         return rv
 
     def commit(self):
+        # if the fixture files define primary keys on auto-increment columns,
+        # this makes sure auto-increment continues to work for future inserts
         if 'postgresql' in self.session.bind.dialect.name:
+            current_schema = self.session.bind.get_execution_options().get(
+                'schema_translate_map',
+                {None: "public"},
+            )[None]
+
             for model in self.models.values():
                 if model.__name__ not in self.model_instances:
                     continue
@@ -142,7 +168,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
 
                 count = self.session.query(model).count() + 1
                 table = f'{model.__tablename__}_id_seq'
-                self.session.execute(
-                    f'ALTER SEQUENCE "{table}" RESTART WITH {count}'
+                self.session.exec(
+                    text(f'ALTER SEQUENCE "{current_schema}"."{table}" RESTART WITH {count}')
                 )
         self.session.commit()

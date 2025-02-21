@@ -28,3 +28,11 @@ Node:
   right_leaf:
     name: Right Leaf
     root: Node(right)
+
+  dangling:
+    name: Dangling  # no parent, no children
+
+
+StandAlone:
+  no_relationships:
+    name: "The Independent One"

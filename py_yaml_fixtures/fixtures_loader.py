@@ -79,22 +79,34 @@ class FixturesLoader:
         if not self._loaded:
             self._load_data(jinja_context=jinja_context)
 
+        stand_alone_models = {
+            model_class_name: {}
+            for model_class_name in self.model_fixtures
+            if model_class_name not in self.relationships
+        }
+
         # build up a directed acyclic graph to determine the model instantiation order
         dag = nx.DiGraph()
-        for model_class_name, dependencies in self.relationships.items():
-            dag.add_node(model_class_name)
+        for model_class_name, dependencies in (self.relationships | stand_alone_models).items():
             if model_class_name not in dependencies:
-                for dep in dependencies:
-                    dag.add_edge(model_class_name, dep)
-                continue
+                # this block adds a chain of "dependencies" between Identifiers of the same model
+                # in the order they were defined in the fixtures files to maintain predictable
+                # auto-increment primary key behavior
+                prior_identifier = None
+                for id_key in self.model_fixtures[model_class_name]:
+                    identifier = Identifier(model_class_name, id_key)
+                    dag.add_node(identifier)
+                    if prior_identifier:
+                        dag.add_edge(identifier, prior_identifier)
+                    prior_identifier = identifier
 
+            # this block is for linking the relationships between different models
             for dep in dependencies:
                 associated_col_name = dependencies[dep]
                 for id_key, instance_data in self.model_fixtures[model_class_name].items():
                     identifier = Identifier(model_class_name, id_key)
-                    dag.add_edge(model_class_name, identifier)
-
                     dag.add_node(identifier)
+
                     associated_identifiers = instance_data.get(associated_col_name)
                     if associated_identifiers is None:
                         continue
@@ -114,30 +126,23 @@ class FixturesLoader:
         # create or update the models in the determined order
         rv = {}
         for identifier in creation_order:
-            if isinstance(identifier, str):
-                model_class_name = identifier
-                keys = list(self.model_fixtures[model_class_name].keys())
-            else:
-                model_class_name = identifier.class_name
-                keys = [identifier.key]
-
-            for key in keys:
-                identifier = Identifier(model_class_name, key)
-                if identifier in rv:
-                    continue
-
-                data = self.factory.maybe_convert_values(
-                    identifier,
-                    data=self.model_fixtures[identifier.class_name][identifier.key],
+            try:
+                data = self.model_fixtures[identifier.class_name][identifier.key]
+            except KeyError:
+                raise KeyError(
+                    f'Missing data for identifier (or incorrect identifier in seed files): '
+                    f'{identifier.class_name}({identifier.key})'
                 )
-                self._data_cache[identifier.class_name][identifier.key] = data
+            data = self.factory.maybe_convert_values(
+                identifier,
+                data=data,
+            )
+            self._data_cache[identifier.class_name][identifier.key] = data
 
-                model_instance, created = self.factory.create_or_update(identifier, data)
-                if progress_callback:
-                    progress_callback(identifier, model_instance, created)
-                rv[identifier] = model_instance
-
-        # FIXME if there are any model names in the seed files but not in creation_order
+            model_instance, created = self.factory.create_or_update(identifier, data)
+            if progress_callback:
+                progress_callback(identifier, model_instance, created)
+            rv[identifier] = model_instance
 
         self.factory.commit()
         return list(rv.values())

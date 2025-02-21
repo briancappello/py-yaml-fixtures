@@ -39,3 +39,10 @@ myst-parser = "^4.0.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+pythonpath = "."
+testpaths = "tests"
+addopts = "-s"
+django_find_project = false
+DJANGO_SETTINGS_MODULE = "django_test_app.settings"

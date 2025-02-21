@@ -1,52 +1,41 @@
 Parent:
   alice:
-    id: 1
     name: Alice
     children:
       - Child(grace)
       - Child(judy)
 
   bob:
-    id: 2
     name: Bob
     children: Child(carol, eve)
 
   joe:
-    id: 3
     name: Joe
 
   emily:
-    id: 4
     name: Emily
 
 
 Child:
   carol:
-    id: 1
     name: Carol
 
   eve:
-    id: 2
     name: Eve
 
   grace:
-    id: 3
     name: Grace
 
   judy:
-    id: 4
     name: Judy
 
   bill:
-    id: 5
     name: Bill
     parent: Parent(joe)
 
   emily:
-    id: 6
     name: Emily
     parent: Parent(emily)
-
 
 Left:
   left1:
@@ -54,7 +43,8 @@ Left:
 
   left2:
     name: Left Two
-    joins: [Join(two)]
+    joins:
+      - Join(two)
 
 
 Right:
@@ -63,7 +53,8 @@ Right:
 
   right2:
     name: Right Two
-    joins: [Join(two)]
+    joins:
+      - Join(two)
 
 
 Join:
