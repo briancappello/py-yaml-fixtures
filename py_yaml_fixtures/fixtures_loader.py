@@ -195,11 +195,19 @@ class FixturesLoader:
                         if data:
                             if filename.islower():
                                 for class_name in data:
-                                    model_identifiers[class_name] = list(
-                                        data[class_name].keys())
+                                    try:
+                                        model_identifiers[class_name] = list(
+                                            data[class_name].keys())
+                                    except AttributeError:
+                                        # class name with no data
+                                        continue
                             else:
                                 class_name = filename[:filename.rfind('.')]
-                                model_identifiers[class_name] = list(data.keys())
+                                try:
+                                    model_identifiers[class_name] = list(data.keys())
+                                except AttributeError:
+                                    # class name with no data
+                                    continue
 
         # second pass where we can render the jinja templates with knowledge of all
         # the model identifier keys (allows random_model and random_models to work)

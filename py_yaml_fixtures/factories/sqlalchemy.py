@@ -168,7 +168,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
 
                 count = self.session.query(model).count() + 1
                 table = f'{model.__tablename__}_id_seq'
-                self.session.exec(
+                self.session.execute(
                     text(f'ALTER SEQUENCE "{current_schema}"."{table}" RESTART WITH {count}')
                 )
         self.session.commit()
