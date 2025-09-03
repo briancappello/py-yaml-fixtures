@@ -6,6 +6,7 @@ from types import FunctionType
 from typing import *
 
 from sqlalchemy import orm as sa_orm, text
+from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.inspection import inspect
 from sqlalchemy.ext.associationproxy import AssociationProxy
 
@@ -91,7 +92,11 @@ class SQLAlchemyModelFactory(FactoryInterface):
                         return None
 
         with self.session.no_autoflush:
-            return self.session.query(model_class).filter(*filter_expressions).one_or_none()
+            stmt = self.session.query(model_class).filter(*filter_expressions)
+            try:
+                return stmt.one_or_none()
+            except MultipleResultsFound as e:
+                raise MultipleResultsFound(str(stmt)) from e
 
     @lru_cache()
     def get_relationships(self, class_name: str) -> Set[str]:
@@ -152,6 +157,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
     def commit(self):
         # if the fixture files define primary keys on auto-increment columns,
         # this makes sure auto-increment continues to work for future inserts
+        self.session.commit()
         if 'postgresql' in self.session.bind.dialect.name:
             current_schema = self.session.bind.get_execution_options().get(
                 'schema_translate_map',
@@ -168,7 +174,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
 
                 count = self.session.query(model).count() + 1
                 table = f'{model.__tablename__}_id_seq'
-                self.session.execute(
-                    text(f'ALTER SEQUENCE "{current_schema}"."{table}" RESTART WITH {count}')
-                )
-        self.session.commit()
+                self.session.execute(text(
+                    f'ALTER SEQUENCE "{current_schema}"."{table}" RESTART WITH {count}'
+                ))
+            self.session.commit()
