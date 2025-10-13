@@ -22,12 +22,13 @@ class SQLAlchemyModelFactory(FactoryInterface):
     def __init__(self,
                  session: sa_orm.Session,
                  models: Union[List[type], Dict[str, type]],
+                 tables_to_exclude_from_autoincrement: Optional[List[str]] = None,
                  date_factory: Optional[FunctionType] = None,
                  datetime_factory: Optional[FunctionType] = None):
         """
         :param session: the sqlalchemy session
         :param models: list of model classes, or dictionary of models by name
-        :param date_factory: function used to generate dates (takes one
+        :param tables_to_exclude_from_autoincrement: list of table names to exclude from autoincrement
             parameter, the text value to convert)
         :param datetime_factory: function used to generate datetimes (takes one
             parameter, the text value to convert)
@@ -36,6 +37,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
         self.session = session
         self.models = (models if isinstance(models, dict)
                        else {model.__name__: model for model in models})
+        self.tables_to_exclude_from_autoincrement = tables_to_exclude_from_autoincrement or []
         self.model_instances = defaultdict(dict)
         self.datetime_factory = datetime_factory or utils.datetime_factory
         self.date_factory = date_factory or utils.date_factory
@@ -168,8 +170,18 @@ class SQLAlchemyModelFactory(FactoryInterface):
                 if model.__name__ not in self.model_instances:
                     continue
 
+                # Check 1: primary key is a single integer column
                 primary_keys = inspect(model).primary_key
                 if len(primary_keys) != 1 or primary_keys[0].type.python_type != int:
+                    continue
+
+                # Check 2: primary key column is auto-incrementing and not joined table inheritance
+                pk_column = primary_keys[0]
+                if not pk_column.autoincrement or bool(pk_column.foreign_keys):
+                    continue
+
+                # Check 3: table is not in the exclude list
+                if model.__tablename__ in self.tables_to_exclude_from_autoincrement:
                     continue
 
                 count = self.session.query(model).count() + 1
