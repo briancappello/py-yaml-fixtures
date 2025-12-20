@@ -1,0 +1,76 @@
+Company:
+  ACME:
+    name: "ACME"
+
+  FANG:
+    name: "FANG"
+
+Employee:
+  acme1:
+    first_name: {{ faker.unique.first_name() }}
+    last_name: {{ faker.unique.last_name() }}
+    company: Company(ACME)
+
+  acme2:
+    first_name: {{ faker.unique.first_name() }}
+    last_name: {{ faker.unique.last_name() }}
+    company: Company(ACME)
+
+  fang1:
+    first_name: {{ faker.unique.first_name() }}
+    last_name: {{ faker.unique.last_name() }}
+    company: Company(FANG)
+
+  fang2:
+    first_name: {{ faker.unique.first_name() }}
+    last_name: {{ faker.unique.last_name() }}
+    company: Company(FANG)
+
+Manager:
+  acme_boss:
+    first_name: Boss
+    last_name: Man (ACME)
+    company: Company(ACME)
+    reports:
+      - Employee(acme1)
+      - Employee(acme2)
+
+  fang_boss:
+    first_name: Boss
+    last_name: Man (FANG)
+    company: Company(FANG)
+    reports:
+      - Employee(fang1)
+      - Employee(fang2)
+
+Customer:
+  acme:
+    name: ACME Consumer
+    suppliers:
+      - Company(ACME)
+
+  fang:
+    name: FANG Consumer
+    suppliers:
+      - Company(FANG)
+
+  both:
+    name: Both Consumer
+    suppliers: Company(ACME, FANG)
+
+Product:
+  acme1:
+    name: Widget 1
+    company: Company(ACME)
+
+  acme2:
+    name: Widget 2
+    company: Company(ACME)
+
+  fang1:
+    name: App 1
+    company: Company(FANG)
+
+  fang2:
+    name: App 2
+    company: Company(FANG)

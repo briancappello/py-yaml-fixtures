@@ -162,6 +162,10 @@ class SQLAlchemyModelFactory(FactoryInterface):
                 if model.__name__ not in self.model_instances:
                     continue
 
+                mapper_args = getattr(model, '__mapper_args__', {})
+                if mapper_args.get('polymorphic_identity') and not mapper_args.get('polymorphic_on'):
+                    continue
+
                 primary_keys = inspect(model).primary_key
                 if len(primary_keys) != 1 or primary_keys[0].type.python_type != int:
                     continue
