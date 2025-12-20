@@ -6,6 +6,7 @@ from types import FunctionType
 from typing import *
 
 from sqlalchemy import orm as sa_orm, text
+from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.inspection import inspect
 from sqlalchemy.ext.associationproxy import AssociationProxy
 
@@ -21,12 +22,13 @@ class SQLAlchemyModelFactory(FactoryInterface):
     def __init__(self,
                  session: sa_orm.Session,
                  models: Union[List[type], Dict[str, type]],
+                 tables_to_exclude_from_autoincrement: Optional[List[str]] = None,
                  date_factory: Optional[FunctionType] = None,
                  datetime_factory: Optional[FunctionType] = None):
         """
         :param session: the sqlalchemy session
         :param models: list of model classes, or dictionary of models by name
-        :param date_factory: function used to generate dates (takes one
+        :param tables_to_exclude_from_autoincrement: list of table names to exclude from autoincrement
             parameter, the text value to convert)
         :param datetime_factory: function used to generate datetimes (takes one
             parameter, the text value to convert)
@@ -35,6 +37,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
         self.session = session
         self.models = (models if isinstance(models, dict)
                        else {model.__name__: model for model in models})
+        self.tables_to_exclude_from_autoincrement = tables_to_exclude_from_autoincrement or []
         self.model_instances = defaultdict(dict)
         self.datetime_factory = datetime_factory or utils.datetime_factory
         self.date_factory = date_factory or utils.date_factory
@@ -91,7 +94,11 @@ class SQLAlchemyModelFactory(FactoryInterface):
                         return None
 
         with self.session.no_autoflush:
-            return self.session.query(model_class).filter(*filter_expressions).one_or_none()
+            stmt = self.session.query(model_class).filter(*filter_expressions)
+            try:
+                return stmt.one_or_none()
+            except MultipleResultsFound as e:
+                raise MultipleResultsFound(str(stmt)) from e
 
     @lru_cache()
     def get_relationships(self, class_name: str) -> Set[str]:
@@ -152,6 +159,7 @@ class SQLAlchemyModelFactory(FactoryInterface):
     def commit(self):
         # if the fixture files define primary keys on auto-increment columns,
         # this makes sure auto-increment continues to work for future inserts
+        self.session.commit()
         if 'postgresql' in self.session.bind.dialect.name:
             current_schema = self.session.bind.get_execution_options().get(
                 'schema_translate_map',
@@ -166,13 +174,23 @@ class SQLAlchemyModelFactory(FactoryInterface):
                 if mapper_args.get('polymorphic_identity') and not mapper_args.get('polymorphic_on'):
                     continue
 
+                # Check 1: primary key is a single integer column
                 primary_keys = inspect(model).primary_key
                 if len(primary_keys) != 1 or primary_keys[0].type.python_type != int:
                     continue
 
+                # Check 2: primary key column is auto-incrementing and not joined table inheritance
+                pk_column = primary_keys[0]
+                if not pk_column.autoincrement or bool(pk_column.foreign_keys):
+                    continue
+
+                # Check 3: table is not in the exclude list
+                if model.__tablename__ in self.tables_to_exclude_from_autoincrement:
+                    continue
+
                 count = self.session.query(model).count() + 1
                 table = f'{model.__tablename__}_id_seq'
-                self.session.execute(
-                    text(f'ALTER SEQUENCE "{current_schema}"."{table}" RESTART WITH {count}')
-                )
-        self.session.commit()
+                self.session.execute(text(
+                    f'ALTER SEQUENCE "{current_schema}"."{table}" RESTART WITH {count}'
+                ))
+            self.session.commit()

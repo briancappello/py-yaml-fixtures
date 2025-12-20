@@ -9,7 +9,7 @@ from typing import *
 from .types import Identifier
 
 
-IDENTIFIER_RE = re.compile(r'(?P<class_name>\w+)\((?P<identifiers>[\w,\s]+)\)')
+IDENTIFIER_RE = re.compile(r'(?P<class_name>\w+)\((?P<identifiers>[\w\-_,\s]+)\)')
 
 
 def datetime_factory(value):
