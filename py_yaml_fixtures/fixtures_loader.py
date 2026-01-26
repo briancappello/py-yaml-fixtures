@@ -242,17 +242,19 @@ class FixturesLoader:
         filename = os.path.basename(filepath)
         if filename.islower():
             for class_name in data:
-                d, self.relationships[class_name] = self._post_process_yaml_data(
+                d, rels = self._post_process_yaml_data(
                     fixture_data=data[class_name],
                     relationship_columns=self.factory.get_relationships(class_name),
                 )
+                self.relationships[class_name] = self.relationships.get(class_name, {}) | rels
                 identifier_data[class_name] = d
         else:
             class_name = filename[:filename.rfind('.')]
-            d, self.relationships[class_name] = self._post_process_yaml_data(
+            d, rels = self._post_process_yaml_data(
                 fixture_data=data,
                 relationship_columns=self.factory.get_relationships(class_name),
             )
+            self.relationships[class_name] = self.relationships.get(class_name, {}) | rels
             identifier_data[class_name] = d
 
         for class_name, d in identifier_data.items():
