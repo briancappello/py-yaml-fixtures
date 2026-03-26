@@ -3,7 +3,7 @@ clean:
 	rm -rf dist/*
 
 build: clean
-    poetry run build
+    uv build
 
 dist: build
 	twine upload dist/*
