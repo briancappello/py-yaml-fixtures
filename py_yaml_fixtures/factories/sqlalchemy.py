@@ -5,7 +5,7 @@ from functools import lru_cache
 from types import FunctionType
 from typing import *
 
-from sqlalchemy import orm as sa_orm, text
+from sqlalchemy import UniqueConstraint, orm as sa_orm, text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.inspection import inspect
 from sqlalchemy.ext.associationproxy import AssociationProxy
@@ -74,6 +74,12 @@ class SQLAlchemyModelFactory(FactoryInterface):
             if col.name in data and (col.primary_key or col.unique):
                 filter_kwargs[col.name] = data[col.name]
 
+        # try composite unique constraints from __table_args__
+        if not filter_kwargs:
+            filter_kwargs = self._get_composite_unique_filter(
+                model_class, data, relationships,
+            )
+
         # otherwise fallback to filtering by values
         if not filter_kwargs:
             filter_kwargs = {k: v for k, v in data.items()
@@ -97,8 +103,91 @@ class SQLAlchemyModelFactory(FactoryInterface):
             stmt = self.session.query(model_class).filter(*filter_expressions)
             try:
                 return stmt.one_or_none()
-            except MultipleResultsFound as e:
-                raise MultipleResultsFound(str(stmt)) from e
+            except MultipleResultsFound:
+                # The filter was ambiguous (e.g. a model with a composite
+                # unique constraint where not all columns were available
+                # in the fixture data).  Treat as "not found" so a new
+                # record is created.
+                return None
+
+    @staticmethod
+    def _get_composite_unique_filter(
+        model_class,
+        data: Dict[str, Any],
+        relationships: Set[str],
+    ) -> Dict[str, Any]:
+        """
+        Check composite ``UniqueConstraint``s defined in ``__table_args__``
+        and return a filter dict if all columns of any constraint are present
+        in ``data``.
+
+        This handles models like::
+
+            class Connector(Base):
+                __table_args__ = (
+                    UniqueConstraint("ocpp_id", "evse_id", name="..."),
+                )
+
+        where neither ``ocpp_id`` nor ``evse_id`` is individually unique, but
+        together they form a composite unique key.
+
+        Constraint columns that are foreign keys (e.g. ``evse_id``) are
+        matched via their corresponding relationship attribute (e.g. ``evse``)
+        if the relationship has already been resolved to a model instance.
+        """
+        table_args = getattr(model_class, '__table_args__', None)
+        if not table_args:
+            return {}
+
+        if isinstance(table_args, dict):
+            # __table_args__ can also be just a dict of kwargs, no constraints
+            return {}
+
+        if not isinstance(table_args, tuple):
+            return {}
+
+        # Build a mapping of FK column names to their relationship attribute
+        # names, e.g. {"evse_id": "evse", "charging_station_id": "charging_station"}
+        fk_col_to_rel = {}
+        for rel_name in relationships:
+            descriptor = getattr(model_class, rel_name, None)
+            prop = getattr(descriptor, 'property', None)
+            if prop is not None:
+                for local_col in prop.local_columns:
+                    fk_col_to_rel[local_col.name] = rel_name
+
+        for arg in table_args:
+            if not isinstance(arg, UniqueConstraint):
+                continue
+
+            constraint_col_names = [col.name for col in arg.columns]
+            filter_kwargs = {}
+            all_present = True
+
+            for col_name in constraint_col_names:
+                if col_name in data:
+                    val = data[col_name]
+                    if (isinstance(val, (bool, int, str, float))
+                            or (col_name in relationships
+                                and hasattr(val, '__mapper__'))):
+                        filter_kwargs[col_name] = val
+                        continue
+
+                # Check if this FK column maps to a resolved relationship
+                rel_name = fk_col_to_rel.get(col_name)
+                if rel_name and rel_name in data:
+                    val = data[rel_name]
+                    if hasattr(val, '__mapper__'):
+                        filter_kwargs[rel_name] = val
+                        continue
+
+                all_present = False
+                break
+
+            if all_present and filter_kwargs:
+                return filter_kwargs
+
+        return {}
 
     @lru_cache()
     def get_relationships(self, class_name: str) -> Set[str]:
