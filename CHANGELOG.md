@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## v0.7.0
+
+- Support SQLAlchemy 2.0
+- Support SQLModel
+- Support self-referential relationships (eg a tree of nodes)
+- Improve documentation and tests
+- Bugfix: do not skip over "standalone" models with no relationships
+- Bugfix: handle loading Enums by name or value
+- Improve some exception messages for easier debugging of typos in fixture files
+
+### Internals
+- Switch to `poetry`
+
 ## v0.6.2 (unreleased)
 
 - when using Flask Unchained, support loading from the root "db" and/or "db/fixtures" directories 

@@ -1,14 +1,11 @@
 clean:
-	rm -fr build/*
-	rm -f dist/*
+	rm -rf build/*
+	rm -rf dist/*
 
-sdist: clean
-	python setup.py sdist
+build: clean
+    poetry run build
 
-wheel: clean
-	python setup.py bdist_wheel
-
-dist: sdist wheel
+dist: build
 	twine upload dist/*
 
-.PHONY: clean dist sdist wheel
+.PHONY: clean build dist

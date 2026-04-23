@@ -6,13 +6,14 @@ A (*work-in-progress*) library for loading database fixtures written in [Jinja2]
 - Flask SQLAlchemy
 - Flask Unchained
 - Standalone SQLAlchemy
+- SQLModel
 
-Requires **Python 3.5+**
+Requires **Python 3.10+**
 
 ## Useful Links
 
 * [Fork it on GitHub](https://github.com/briancappello/py-yaml-fixtures)
-* [Documentation](https://py-yaml-fixtures.readthedocs.io/en/latest/)
+* [Documentation](https://py-yaml-fixtures.readthedocs.io/en/latest/introduction.html)
 * [PyPI](https://pypi.org/project/Py-YAML-Fixtures/)
 
 ```bash
@@ -80,13 +81,13 @@ Child:
 Parent:
     parent1:
         name: Parent 1
-        children: ['Child(alice)', 'Child(bob)']
+        children: [Child(alice), Child(bob)]
 
     parent2:
         name: Parent 2
         children:
-          - 'Child(grace)'
-          - 'Child(judy)'
+          - Child(grace)
+          - Child(judy)
 ```
 
 Or you can create YAML files named after each model's class name (`Parent` and `Child` in our case). For example:
@@ -112,18 +113,18 @@ judy:
 
 parent1:
     name: Parent 1
-    children: ['Child(alice)', 'Child(bob)']
+    children: [Child(alice), Child(bob)]
 
 parent2:
     name: Parent 2
     children:
-        - 'Child(grace)'
-        - 'Child(judy)'
+        - Child(grace)
+        - Child(judy)
 ```
 
 ### Relationships
 
-The top-level YAML keys (`alice`, `bob`, `grace`, `judy`, `parent1`, `parent2`) are unique ids used to reference objects in relationships. They must be unique across *all* model fixtures.
+The top-level YAML keys (`alice`, `bob`, `grace`, `judy`, `parent1`, `parent2`) are unique ids used to reference objects in relationships. They must be unique *within* a model class.
 
 To reference them, we use an *identifier string*. An identifier string consists of two parts: the class name, and one or more ids. For singular relationships the notation is `'ModelClassName(id)'`. For the many-side of relationships, the notation is the same, just combined with YAML's list syntax:
 
@@ -132,18 +133,18 @@ To reference them, we use an *identifier string*. An identifier string consists 
 
 parent1:
   name: Parent 1
-  children: ['Child(alice)', 'Child(bob)']
+  children: [Child(alice), Child(bob)]
 
 parent2:
   name: Parent 2
   children:
-    - 'Child(grace)'
-    - 'Child(judy)'
+    - Child(grace)
+    - Child(judy)
 
 # or in short-hand notation
 parent3:
   name: Parent 3
-  children: ['Child(alice, bob)']
+  children: [Child(alice, bob)]
 
 # technically, as long as there are at least 2 ids in the identifier string,
 # then even the YAML list syntax is optional, and you can write stuff like this:
@@ -165,7 +166,7 @@ parent5:
 
 All of the YAML fixtures files are rendered by Jinja before getting loaded. This means you have full access to the Jinja environment, and can use things like `faker`, `range` and `random`:
 
-```jinja2
+```yaml+jinja
 # db/fixtures/Child.yaml
 
 {% for i in range(0, 20) %}
@@ -174,7 +175,7 @@ child{{ i }}:
 {% endfor %}
 ```
 
-```jinja2
+```yaml+jinja
 # db/fixtures/Parent.yaml
 
 {% for i in range(0, 10) %}
@@ -191,6 +192,34 @@ There are also two included Jinja helper functions:
 * `random_models(model_name: str, min_count: int = 0, max_count: int = 3)`
    - For example, to get a list of 0 to 3 `Child` models: `{{ random_models('Child') }}`
    - For example, to get a list of 1 to 4 `Child` models: `{{ random_models('Child', 1, 4) }}`
+
+### Customizing the Jinja Environment (adding functions and filters)
+
+```python
+import random
+
+from datetime import date
+from jinja2 import Environment
+from py_yaml_fixtures import FixturesLoader
+
+
+def custom_function():
+    return random.choice(['one', 'two', 'three'])
+
+
+def isoformat(dt: date):
+    return dt.isoformat()
+
+
+env = Environment()
+env.globals['custom_function'] = custom_function
+env.filters['isoformat'] = isoformat
+
+loader = FixturesLoader(
+    ...,
+    env=env,
+)
+```
 
 ## Installation
 
@@ -391,94 +420,7 @@ if __name__ == '__main__':
 
 ## Known Limitations
 
-### One to Many Relationships
-
-It is not possible to "mix" declarations on both sides of a relationship, eg this doesn't work:
-
-```yaml
-Parent:
-  alice:
-    name: Alice
-    children:
-      - Child(grace)
-
-  bob:
-    name: Bob
-
-Child:
-  grace:
-    name: Grace
-
-  judy:
-    name: Judy
-    parent: Parent(bob)
-```
-
-The above example will raise a circular dependency exception. You can either declare all children on `Parent` models, *or* declare all parents on `Child` models, **but not both**.
-
-### Many to Many Relationships
-
-Let's say we have a many-to-many relationship between the `Article` and `Tag` models:
-
-```python
-class ArticleTag(db.Model):
-    """Join table between Article and Tag"""
-    article_id = db.foreign_key('Article', primary_key=True)
-    article = db.relationship('Article', back_populates='article_tags')
-
-    tag_id = db.foreign_key('Tag', primary_key=True)
-    tag = db.relationship('Tag', back_populates='tag_articles')
-
-class Article(db.Model):
-    title = db.Column(db.String)
-
-    article_tags = db.relationship('ArticleTag', back_populates='article')
-    tags = db.association_proxy('article_tags', 'tag')
-
-class Tag(db.Model):
-    name = db.Column(db.String)
-
-    tag_articles = db.relationship('ArticleTag', back_populates='tag')
-    articles = db.association_proxy('tag_articles', 'article')
-```
-
-The relationships must be specified on the join table model `ArticleTag`:
-
-```yaml
-Article:
-  hello_world:
-    title: Hello World
-
-  metaprogramming:
-    title: Metaprogramming
-
-Tag:
-  coding:
-    name: Coding
-
-  beginner:
-    name: Beginner
-
-  advanced:
-    name: Advanced
-
-ArticleTag:
-  at1:
-    article: Article(hello_world)
-    tag: Tag(coding)
-  at2:
-    article: Article(hello_world)
-    tag: Tag(beginner)
-
-  at3:
-    article: Article(metaprogramming)
-    tag: Tag(coding)
-  at4:
-    article: Article(metaprogramming)
-    tag: Tag(advanced)
-```
-
-### Association Proxies
+### SQLAlchemy Association Proxies
 
 As of this writing, specifying values directly on association proxy columns is *not* supported.
 

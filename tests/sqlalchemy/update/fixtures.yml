@@ -8,5 +8,5 @@ Child:
     parent: Parent(p1)
 
   c2:
-    name: Second Child
+    name: {{ random_name() }}
     parent: Parent(p1)

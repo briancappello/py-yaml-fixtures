@@ -39,9 +39,6 @@ class FixturesLoader:
                  factory: FactoryInterface,
                  fixture_dirs: List[str],
                  env: Optional[jinja2.Environment] = None):
-        self.env = self._ensure_env(env)
-        """The Jinja Environment used for rendering the yaml template files."""
-
         factory.loader = self
         self.factory = factory
         """The factory instance."""
@@ -49,8 +46,12 @@ class FixturesLoader:
         self.fixture_dirs = fixture_dirs
         """A list of directories where fixture files should be loaded from."""
 
+        self.env = self._ensure_env(env)
+        """The Jinja Environment used for rendering the yaml template files."""
+
         self.relationships = {}
-        """A dict keyed by model name where values are a list of related model names."""
+        """A dict keyed by model name where values are dicts of related model names
+        to attribute names."""
 
         self.model_fixtures = defaultdict(dict)
         """A dict of models names to their semi-processed data from the yaml files."""
@@ -59,29 +60,64 @@ class FixturesLoader:
         self._data_cache = defaultdict(dict)
         self._loaded = False
 
-    def create_all(self, progress_callback: Optional[callable] = None) -> Dict[str, object]:
+    def create_all(
+        self,
+        progress_callback: Optional[callable] = None,
+        jinja_context: dict | None = None,
+    ) -> list:
         """
         Creates all the models discovered from fixture files in :attr:`fixtures_dir`.
 
         :param progress_callback: An optional function to track progress. It must take three
-                               parameters:
-                                - an :class:`Identifier`
-                                - the model instance
-                                - and a boolean specifying whether the model was created
+            parameters:
+            - an :class:`Identifier`
+            - the model instance
+            - and a boolean specifying whether the model was created
+        :param jinja_context: Extra context variables for rendering jinja templates.
         :return: A dictionary keyed by identifier where the values are model instances.
         """
         if not self._loaded:
-            self._load_data()
+            self._load_data(jinja_context=jinja_context)
+
+        stand_alone_models = {
+            model_class_name: {}
+            for model_class_name in self.model_fixtures
+            if model_class_name not in self.relationships
+        }
 
         # build up a directed acyclic graph to determine the model instantiation order
         dag = nx.DiGraph()
-        for model_class_name, dependencies in self.relationships.items():
-            dag.add_node(model_class_name)
+        for model_class_name, dependencies in (self.relationships | stand_alone_models).items():
+            if model_class_name not in dependencies:
+                # this block adds a chain of "dependencies" between Identifiers of the same model
+                # in the order they were defined in the fixtures files to maintain predictable
+                # auto-increment primary key behavior
+                prior_identifier = None
+                for id_key in self.model_fixtures[model_class_name]:
+                    identifier = Identifier(model_class_name, id_key)
+                    dag.add_node(identifier)
+                    if prior_identifier:
+                        dag.add_edge(identifier, prior_identifier)
+                    prior_identifier = identifier
+
+            # this block is for linking the relationships between different models
             for dep in dependencies:
-                dag.add_edge(model_class_name, dep)
+                associated_col_name = dependencies[dep]
+                for id_key, instance_data in self.model_fixtures[model_class_name].items():
+                    identifier = Identifier(model_class_name, id_key)
+                    dag.add_node(identifier)
+
+                    associated_identifiers = instance_data.get(associated_col_name)
+                    if associated_identifiers is None:
+                        continue
+                    elif isinstance(associated_identifiers, Identifier):
+                        associated_identifiers = [associated_identifiers]
+
+                    for associated_identifier in associated_identifiers:
+                        dag.add_edge(identifier, associated_identifier)
 
         try:
-            creation_order = reversed(list(nx.topological_sort(dag)))
+            creation_order = list(reversed(list(nx.topological_sort(dag))))
         except nx.NetworkXUnfeasible:
             raise Exception('Circular dependency detected between models: ' +
                             ', '.join('{a} -> {b}'.format(a=a, b=b)
@@ -89,19 +125,27 @@ class FixturesLoader:
 
         # create or update the models in the determined order
         rv = {}
-        for model_class_name in creation_order:
-            for identifier_key, data in self.model_fixtures[model_class_name].items():
-                identifier = Identifier(model_class_name, identifier_key)
-                data = self.factory.maybe_convert_values(identifier, data)
-                self._data_cache[model_class_name][identifier_key] = data
+        for identifier in creation_order:
+            try:
+                data = self.model_fixtures[identifier.class_name][identifier.key]
+            except KeyError:
+                raise KeyError(
+                    f'Missing data for identifier (or incorrect identifier in seed files): '
+                    f'{identifier.class_name}({identifier.key})'
+                )
+            data = self.factory.maybe_convert_values(
+                identifier,
+                data=data,
+            )
+            self._data_cache[identifier.class_name][identifier.key] = data
 
-                model_instance, created = self.factory.create_or_update(identifier, data)
-                if progress_callback:
-                    progress_callback(identifier, model_instance, created)
-                rv[identifier_key] = model_instance
+            model_instance, created = self.factory.create_or_update(identifier, data)
+            if progress_callback:
+                progress_callback(identifier, model_instance, created)
+            rv[identifier] = model_instance
 
         self.factory.commit()
-        return rv
+        return list(rv.values())
 
     def convert_identifiers(self, identifiers: Union[Identifier, List[Identifier]]):
         """
@@ -122,10 +166,11 @@ class FixturesLoader:
         else:
             raise TypeError('`identifiers` must be an Identifier or list of Identifiers.')
 
-    def _load_data(self):
+    def _load_data(self, jinja_context: dict | None = None):
         """
         Load all fixtures from :attr:`fixtures_dir`
         """
+        jinja_context = jinja_context or {}
         filepaths = []
         model_identifiers = defaultdict(list)
 
@@ -145,43 +190,71 @@ class FixturesLoader:
 
                     # preload to determine identifier keys
                     with self._preloading_env() as env:
-                        rendered_yaml = env.get_template(filepath).render()
+                        rendered_yaml = env.get_template(filepath).render(**jinja_context)
                         data = yaml.load(rendered_yaml, Loader=yaml.FullLoader)
                         if data:
                             if filename.islower():
                                 for class_name in data:
-                                    model_identifiers[class_name] = list(
-                                        data[class_name].keys())
+                                    try:
+                                        model_identifiers[class_name] = list(
+                                            data[class_name].keys())
+                                    except AttributeError:
+                                        # class name with no data
+                                        continue
                             else:
                                 class_name = filename[:filename.rfind('.')]
-                                model_identifiers[class_name] = list(data.keys())
+                                try:
+                                    model_identifiers[class_name] = list(data.keys())
+                                except AttributeError:
+                                    # class name with no data
+                                    continue
 
         # second pass where we can render the jinja templates with knowledge of all
         # the model identifier keys (allows random_model and random_models to work)
         for filepath in filepaths:
-            self._load_from_yaml(filepath, model_identifiers)
+            self._load_from_yaml(
+                filepath=filepath,
+                model_identifiers=model_identifiers,
+                jinja_context=jinja_context,
+            )
 
         self._loaded = True
 
-    def _load_from_yaml(self, filepath: str, model_identifiers: Dict[str, List[str]]):
+    def _load_from_yaml(
+        self,
+        filepath: str,
+        model_identifiers: Dict[str, List[str]],
+        jinja_context: dict | None = None,
+    ):
         """
-        Load fixtures from the given filename
+        Render YAML templates and parse raw fixtures data from the given filename.
         """
+        jinja_context = jinja_context or {}
         rendered_yaml = self.env.get_template(filepath).render(
-            model_identifiers=model_identifiers)
+            model_identifiers=model_identifiers,
+            **jinja_context,
+        )
         data = yaml.load(rendered_yaml, Loader=yaml.FullLoader)
+        if not data:
+            return
 
         identifier_data = {}
         filename = os.path.basename(filepath)
         if filename.islower():
             for class_name in data:
-                d, self.relationships[class_name] = self._post_process_yaml_data(
-                    data[class_name], self.factory.get_relationships(class_name))
+                d, rels = self._post_process_yaml_data(
+                    fixture_data=data[class_name],
+                    relationship_columns=self.factory.get_relationships(class_name),
+                )
+                self.relationships[class_name] = self.relationships.get(class_name, {}) | rels
                 identifier_data[class_name] = d
         else:
             class_name = filename[:filename.rfind('.')]
-            d, self.relationships[class_name] = self._post_process_yaml_data(
-                data, self.factory.get_relationships(class_name))
+            d, rels = self._post_process_yaml_data(
+                fixture_data=data,
+                relationship_columns=self.factory.get_relationships(class_name),
+            )
+            self.relationships[class_name] = self.relationships.get(class_name, {}) | rels
             identifier_data[class_name] = d
 
         for class_name, d in identifier_data.items():
@@ -191,15 +264,15 @@ class FixturesLoader:
     def _post_process_yaml_data(self,
                                 fixture_data: Dict[str, Dict[str, Any]],
                                 relationship_columns: Set[str],
-                                ) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
+                                ) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]:
         """
         Convert and normalize identifier strings to Identifiers, as well as determine
         class relationships.
         """
         rv = {}
-        relationships = set()
+        relationships = {}
         if not fixture_data:
-            return rv, []
+            return rv, {}
 
         for identifier_id, data in fixture_data.items():
             new_data = {}
@@ -210,7 +283,7 @@ class FixturesLoader:
 
                 identifiers = normalize_identifiers(value)
                 if identifiers:
-                    relationships.add(identifiers[0].class_name)
+                    relationships[identifiers[0].class_name] = col_name
 
                 if isinstance(value, str) and len(identifiers) <= 1:
                     new_data[col_name] = identifiers[0] if identifiers else None
@@ -218,7 +291,7 @@ class FixturesLoader:
                     new_data[col_name] = identifiers
 
             rv[identifier_id] = new_data
-        return rv, list(relationships)
+        return rv, relationships
 
     def _ensure_env(self, env: Union[jinja2.Environment, None]):
         """
@@ -227,14 +300,32 @@ class FixturesLoader:
         if not env:
             env = jinja2.Environment()
         if not env.loader:
-            env.loader = jinja2.FunctionLoader(lambda path: self._file_cache[path])
+            def cache_loader(path):
+                try:
+                    return self._file_cache[path]
+                except KeyError:
+                    raise jinja2.exceptions.TemplateNotFound(path)
+
+            env.loader = jinja2.ChoiceLoader([
+                jinja2.FunctionLoader(cache_loader),
+            ] + [jinja2.FileSystemLoader(path) for path in self.fixture_dirs])
 
         if 'faker' not in env.globals:
             faker = Faker()
             faker.seed_instance(1234)
             env.globals['faker'] = faker
 
+        def merge(data: dict | None, defaults: dict):
+            data = data or {}
+            d = {**data}
+            for k, v in defaults.items():
+                if k not in d:
+                    d[k] = v
+            return d
+
         env.globals.setdefault('hash_password', hash_password)
+        env.filters.setdefault('isoformat', lambda dt: dt.isoformat())
+        env.filters.setdefault('merge', merge)
         if hasattr(jinja2, 'pass_context'):
             env.globals.setdefault('random_model', jinja2.pass_context(random_model))
             env.globals.setdefault('random_models', jinja2.pass_context(random_models))

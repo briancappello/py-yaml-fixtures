@@ -3,6 +3,36 @@ Parent:
     name: First Parent
 
 Child:
-  c1:
-    name: First Child
+  c1x:
+    name: {{ child.name }}
+    description: Description of {{ child.name }}
     parent: Parent(p1)
+    node: Node(root)
+
+Node:
+  root:
+    name: Root
+
+  left:
+    name: Left
+    root: Node(root)
+
+  right:
+    name: Right
+    root: Node(root)
+
+  left_leaf:
+    name: Left Leaf
+    root: Node(left)
+
+  right_leaf:
+    name: Right Leaf
+    root: Node(right)
+
+  dangling:
+    name: Dangling  # no parent, no children
+
+
+StandAlone:
+  no_relationships:
+    name: "The Independent One"

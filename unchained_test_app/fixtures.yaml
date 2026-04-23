@@ -9,6 +9,12 @@ Parent:
     name: Bob
     children: Child(carol, eve)
 
+  joe:
+    name: Joe
+
+  emily:
+    name: Emily
+
 
 Child:
   carol:
@@ -22,3 +28,40 @@ Child:
 
   judy:
     name: Judy
+
+  bill:
+    name: Bill
+    parent: Parent(joe)
+
+  emily:
+    name: Emily
+    parent: Parent(emily)
+
+Left:
+  left1:
+    name: Left One
+
+  left2:
+    name: Left Two
+    joins:
+      - Join(two)
+
+
+Right:
+  right1:
+    name: Right One
+
+  right2:
+    name: Right Two
+    joins:
+      - Join(two)
+
+
+Join:
+  one:
+    name: One
+    left: Left(left1)
+    right: Right(right1)
+
+  two:
+    name: Two
