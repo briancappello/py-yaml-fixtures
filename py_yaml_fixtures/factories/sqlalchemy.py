@@ -54,8 +54,22 @@ class SQLAlchemyModelFactory(FactoryInterface):
             instance = model_class(**data)
             created = True
         else:
+            relationships = self.get_relationships(identifier.class_name)
             for attr, value in data.items():
-                setattr(instance, attr, value)
+                if (attr in relationships
+                        and isinstance(value, list)
+                        and getattr(instance, attr, None)):
+                    # Extend existing collection relationships instead of
+                    # replacing them to avoid orphaning children that are
+                    # already associated (e.g. EVSESpecifications belonging
+                    # to a ChargingStationSpecification loaded from a
+                    # different fixture directory).
+                    existing = getattr(instance, attr)
+                    for item in value:
+                        if item not in existing:
+                            existing.append(item)
+                else:
+                    setattr(instance, attr, value)
 
         self.session.add(instance)
         self.model_instances[identifier.class_name][identifier.key] = instance
